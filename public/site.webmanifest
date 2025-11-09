@@ -1,0 +1,14 @@
+{
+  "name": "Yoto Product Discovery",
+  "short_name": "Yoto",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "theme_color": "#FF6B35",
+  "background_color": "#ffffff",
+  "display": "standalone"
+}

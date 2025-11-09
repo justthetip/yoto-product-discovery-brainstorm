@@ -34,7 +34,9 @@ You will receive a pre-filtered set of products that match basic criteria. Your 
 - Explain matches in parent-friendly language
 - Suggest refinements or alternatives
 
-Format your responses as JSON with this structure:
+CRITICAL: You MUST respond with valid, properly formatted JSON only. No markdown, no extra text.
+
+Format your responses as JSON with this exact structure:
 {
   "message": "Your conversational response to the user",
   "products": [
@@ -51,7 +53,13 @@ If you need clarification, return:
 {
   "message": "Your question to the user",
   "needsMoreInfo": true
-}`;
+}
+
+JSON formatting rules:
+- Use double quotes for ALL string keys and values
+- No trailing commas
+- Escape special characters in strings
+- Ensure all brackets and braces are properly closed`;
 
 async function callClaudeAPI(messages, products, apiKey) {
   // Sanitize text to prevent JSON parsing issues
@@ -72,14 +80,14 @@ async function callClaudeAPI(messages, products, apiKey) {
     price: p.price,
     ageRange: p.ageRange,
     runtime: p.runtime,
-    contentType: p.contentType,
+    contentType: Array.isArray(p.contentType) ? p.contentType.map(ct => sanitizeText(ct)) : [],
     availableForSale: p.availableForSale,
-    flag: p.flag
+    flag: sanitizeText(p.flag || '')
   }));
 
   const requestPayload = {
     model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1024,
+    max_tokens: 2048,
     system: SYSTEM_PROMPT,
     messages: [
       ...messages,
@@ -163,7 +171,15 @@ async function callClaudeAPI(messages, products, apiKey) {
     } catch (parseError) {
       console.error('❌ Failed to parse JSON response', {
         error: parseError.message,
-        jsonStr: jsonStr.substring(0, 500)
+        errorPosition: parseError.message.match(/position (\d+)/)?.[1],
+        jsonLength: jsonStr.length,
+        jsonPreview: jsonStr.substring(0, 1000),
+        jsonAroundError: parseError.message.match(/position (\d+)/)
+          ? jsonStr.substring(
+              Math.max(0, parseInt(parseError.message.match(/position (\d+)/)[1]) - 100),
+              Math.min(jsonStr.length, parseInt(parseError.message.match(/position (\d+)/)[1]) + 100)
+            )
+          : 'N/A'
       });
       throw new Error(`Failed to parse Claude response as JSON: ${parseError.message}`);
     }
