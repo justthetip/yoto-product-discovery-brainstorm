@@ -3,6 +3,36 @@
  * Optimized for Vercel Edge Functions and minimal API costs
  */
 
+// Comprehensive logging utility
+const Logger = {
+    colors: {
+        info: '#2196F3',
+        success: '#4CAF50',
+        warning: '#FF9800',
+        error: '#F44336',
+        debug: '#9C27B0'
+    },
+
+    log(level, message, data = null) {
+        const timestamp = new Date().toISOString();
+        const color = this.colors[level] || '#000';
+
+        console.group(`%c[${level.toUpperCase()}] ${timestamp}`, `color: ${color}; font-weight: bold`);
+        console.log(message);
+        if (data) {
+            console.log('Data:', data);
+        }
+        console.trace('Stack trace:');
+        console.groupEnd();
+    },
+
+    info(message, data) { this.log('info', message, data); },
+    success(message, data) { this.log('success', message, data); },
+    warning(message, data) { this.log('warning', message, data); },
+    error(message, data) { this.log('error', message, data); },
+    debug(message, data) { this.log('debug', message, data); }
+};
+
 class YotoAIChat {
     constructor() {
         this.products = [];
@@ -13,6 +43,7 @@ class YotoAIChat {
         // Cache for responses (reduce API costs)
         this.responseCache = new Map();
 
+        Logger.info('YotoAIChat initialized');
         this.init();
     }
 
@@ -24,12 +55,21 @@ class YotoAIChat {
 
     async loadProducts() {
         try {
+            Logger.info('Loading product catalogue...');
             const response = await fetch('../data/yoto-content.json');
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
             const data = await response.json();
             this.products = data.data.products;
-            console.log(`Loaded ${this.products.length} products`);
+            Logger.success(`Loaded ${this.products.length} products`, {
+                totalProducts: this.products.length,
+                sampleProduct: this.products[0]
+            });
         } catch (error) {
-            console.error('Error loading products:', error);
+            Logger.error('Error loading products', { error: error.message, stack: error.stack });
             this.showError('Failed to load product catalogue. Please refresh the page.');
         }
     }
@@ -64,7 +104,16 @@ class YotoAIChat {
         const chatInput = document.getElementById('chatInput');
         const message = chatInput.value.trim();
 
-        if (!message || this.isLoading) return;
+        if (!message || this.isLoading) {
+            Logger.warning('Cannot send message', {
+                message,
+                isLoading: this.isLoading,
+                reason: !message ? 'Empty message' : 'Already loading'
+            });
+            return;
+        }
+
+        Logger.info('Sending user message', { message, conversationLength: this.conversationHistory.length });
 
         // Add user message to UI
         this.addMessageToUI('user', message);
@@ -82,22 +131,42 @@ class YotoAIChat {
         this.isLoading = true;
         this.showLoading();
 
+        const startTime = performance.now();
+
         try {
             // Check cache first
             const cacheKey = this.getCacheKey(message);
             if (this.responseCache.has(cacheKey)) {
-                console.log('Using cached response');
+                Logger.info('Using cached response', { cacheKey });
                 const cachedResponse = this.responseCache.get(cacheKey);
                 this.handleAIResponse(cachedResponse);
                 return;
             }
 
             // Pre-filter products on client side to reduce token usage
+            const filterStartTime = performance.now();
             const preFilteredProducts = this.preFilterProducts(message);
-            console.log(`Pre-filtered to ${preFilteredProducts.length} products`);
+            const filterTime = performance.now() - filterStartTime;
+
+            Logger.success(`Pre-filtered products in ${filterTime.toFixed(2)}ms`, {
+                totalProducts: this.products.length,
+                filteredProducts: preFilteredProducts.length,
+                filterTime: `${filterTime.toFixed(2)}ms`,
+                sampleProducts: preFilteredProducts.slice(0, 3).map(p => ({ title: p.title, price: p.price }))
+            });
 
             // Call AI API
+            const apiStartTime = performance.now();
             const response = await this.callAI(this.conversationHistory, preFilteredProducts);
+            const apiTime = performance.now() - apiStartTime;
+
+            Logger.success(`AI response received in ${apiTime.toFixed(2)}ms`, {
+                apiTime: `${apiTime.toFixed(2)}ms`,
+                responsePreview: {
+                    message: response.message?.substring(0, 100),
+                    productsCount: response.products?.length
+                }
+            });
 
             // Cache the response
             this.responseCache.set(cacheKey, response);
@@ -108,8 +177,23 @@ class YotoAIChat {
             // Save conversation history
             this.saveConversationHistory();
 
+            const totalTime = performance.now() - startTime;
+            Logger.success(`Message processing complete in ${totalTime.toFixed(2)}ms`, {
+                totalTime: `${totalTime.toFixed(2)}ms`,
+                breakdown: {
+                    filtering: `${filterTime.toFixed(2)}ms`,
+                    apiCall: `${apiTime.toFixed(2)}ms`,
+                    other: `${(totalTime - filterTime - apiTime).toFixed(2)}ms`
+                }
+            });
+
         } catch (error) {
-            console.error('Error sending message:', error);
+            Logger.error('Error sending message', {
+                error: error.message,
+                stack: error.stack,
+                message: message,
+                conversationHistory: this.conversationHistory
+            });
             this.showError(`Failed to get AI response: ${error.message}`);
         } finally {
             this.isLoading = false;
@@ -331,24 +415,90 @@ class YotoAIChat {
         // Use local API endpoint (works for both local dev and Vercel)
         const apiUrl = '/api/chat';
 
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                messages: messages,
-                products: products,
-                provider: 'anthropic'
-            })
+        const requestPayload = {
+            messages: messages,
+            products: products,
+            provider: 'anthropic'
+        };
+
+        Logger.info('Calling AI API', {
+            url: apiUrl,
+            messageCount: messages.length,
+            productCount: products.length,
+            provider: 'anthropic',
+            payloadSize: `${(JSON.stringify(requestPayload).length / 1024).toFixed(2)} KB`
         });
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'API request failed');
-        }
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestPayload)
+            });
 
-        return await response.json();
+            Logger.info('API response received', {
+                status: response.status,
+                statusText: response.statusText,
+                ok: response.ok,
+                headers: Object.fromEntries(response.headers.entries())
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                let errorData;
+                try {
+                    errorData = JSON.parse(errorText);
+                } catch {
+                    errorData = { raw: errorText };
+                }
+
+                Logger.error('API request failed', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    error: errorData,
+                    requestPayload: {
+                        messageCount: messages.length,
+                        productCount: products.length
+                    }
+                });
+
+                throw new Error(errorData.error || errorData.details || errorText || 'API request failed');
+            }
+
+            const responseData = await response.json();
+
+            Logger.success('AI API call successful', {
+                hasMessage: !!responseData.message,
+                messagePreview: responseData.message?.substring(0, 100),
+                productCount: responseData.products?.length,
+                hasSuggestions: !!responseData.suggestions
+            });
+
+            return responseData;
+
+        } catch (error) {
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                Logger.error('Network error calling AI API', {
+                    error: error.message,
+                    stack: error.stack,
+                    apiUrl,
+                    possibleCauses: [
+                        'Network connection issue',
+                        'API endpoint not deployed',
+                        'CORS configuration issue'
+                    ]
+                });
+            } else {
+                Logger.error('Unexpected error calling AI API', {
+                    error: error.message,
+                    stack: error.stack,
+                    type: error.name
+                });
+            }
+            throw error;
+        }
     }
 
     handleAIResponse(response) {

@@ -67,43 +67,104 @@ async function callClaudeAPI(messages, products, apiKey) {
     flag: p.flag
   }));
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01'
-    },
-    body: JSON.stringify({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 1024,
-      system: SYSTEM_PROMPT,
-      messages: [
-        ...messages,
-        {
-          role: 'user',
-          content: `Available products to search:\n${JSON.stringify(productContext, null, 2)}\n\nRespond with JSON only.`
-        }
-      ]
-    })
+  const requestPayload = {
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 1024,
+    system: SYSTEM_PROMPT,
+    messages: [
+      ...messages,
+      {
+        role: 'user',
+        content: `Available products to search:\n${JSON.stringify(productContext, null, 2)}\n\nRespond with JSON only.`
+      }
+    ]
+  };
+
+  console.log('📤 Calling Claude API', {
+    model: requestPayload.model,
+    messageCount: messages.length,
+    productContextCount: productContext.length,
+    maxTokens: requestPayload.max_tokens,
+    requestSize: `${(JSON.stringify(requestPayload).length / 1024).toFixed(2)} KB`
   });
 
-  if (!response.ok) {
-    throw new Error(`Claude API error: ${response.status} ${await response.text()}`);
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify(requestPayload)
+    });
+
+    console.log('📥 Claude API response received', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok,
+      headers: {
+        'content-type': response.headers.get('content-type'),
+        'request-id': response.headers.get('request-id')
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Claude API error response', {
+        status: response.status,
+        statusText: response.statusText,
+        errorText: errorText.substring(0, 500)
+      });
+      throw new Error(`Claude API error: ${response.status} ${errorText}`);
+    }
+
+    const data = await response.json();
+    const content = data.content[0].text;
+
+    console.log('✅ Claude API response parsed', {
+      id: data.id,
+      model: data.model,
+      stopReason: data.stop_reason,
+      usage: data.usage,
+      contentLength: content.length,
+      contentPreview: content.substring(0, 200)
+    });
+
+    // Extract JSON from response (handle markdown code blocks)
+    let jsonStr = content;
+    if (content.includes('```json')) {
+      jsonStr = content.split('```json')[1].split('```')[0].trim();
+      console.log('🔄 Extracted JSON from markdown code block');
+    } else if (content.includes('```')) {
+      jsonStr = content.split('```')[1].split('```')[0].trim();
+      console.log('🔄 Extracted JSON from generic code block');
+    }
+
+    try {
+      const parsedResult = JSON.parse(jsonStr);
+      console.log('✅ JSON parsed successfully', {
+        hasMessage: !!parsedResult.message,
+        productCount: parsedResult.products?.length,
+        hasSuggestions: !!parsedResult.suggestions,
+        needsMoreInfo: !!parsedResult.needsMoreInfo
+      });
+      return parsedResult;
+    } catch (parseError) {
+      console.error('❌ Failed to parse JSON response', {
+        error: parseError.message,
+        jsonStr: jsonStr.substring(0, 500)
+      });
+      throw new Error(`Failed to parse Claude response as JSON: ${parseError.message}`);
+    }
+
+  } catch (error) {
+    console.error('❌ Claude API call failed', {
+      error: error.message,
+      stack: error.stack
+    });
+    throw error;
   }
-
-  const data = await response.json();
-  const content = data.content[0].text;
-
-  // Extract JSON from response (handle markdown code blocks)
-  let jsonStr = content;
-  if (content.includes('```json')) {
-    jsonStr = content.split('```json')[1].split('```')[0].trim();
-  } else if (content.includes('```')) {
-    jsonStr = content.split('```')[1].split('```')[0].trim();
-  }
-
-  return JSON.parse(jsonStr);
 }
 
 async function callOpenAIAPI(messages, products, apiKey) {
@@ -150,6 +211,15 @@ async function callOpenAIAPI(messages, products, apiKey) {
 }
 
 export default async function handler(request) {
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+  const startTime = Date.now();
+
+  console.log(`[${requestId}] 🟢 Incoming request`, {
+    method: request.method,
+    url: request.url,
+    headers: Object.fromEntries(request.headers.entries())
+  });
+
   // CORS headers
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -160,10 +230,12 @@ export default async function handler(request) {
 
   // Handle preflight
   if (request.method === 'OPTIONS') {
+    console.log(`[${requestId}] ✅ CORS preflight response`);
     return new Response(null, { headers: corsHeaders });
   }
 
   if (request.method !== 'POST') {
+    console.log(`[${requestId}] ❌ Method not allowed: ${request.method}`);
     return new Response(
       JSON.stringify({ error: 'Method not allowed' }),
       { status: 405, headers: corsHeaders }
@@ -171,9 +243,20 @@ export default async function handler(request) {
   }
 
   try {
-    const { messages, products, provider = 'anthropic' } = await request.json();
+    const requestBody = await request.json();
+    const { messages, products, provider = 'anthropic' } = requestBody;
+
+    console.log(`[${requestId}] 📦 Request payload parsed`, {
+      hasMessages: !!messages,
+      messageCount: messages?.length,
+      hasProducts: !!products,
+      productCount: products?.length,
+      provider,
+      payloadSize: `${(JSON.stringify(requestBody).length / 1024).toFixed(2)} KB`
+    });
 
     if (!messages || !Array.isArray(messages)) {
+      console.log(`[${requestId}] ❌ Invalid messages format`, { messages });
       return new Response(
         JSON.stringify({ error: 'Invalid messages format' }),
         { status: 400, headers: corsHeaders }
@@ -181,6 +264,7 @@ export default async function handler(request) {
     }
 
     if (!products || !Array.isArray(products)) {
+      console.log(`[${requestId}] ❌ Invalid products format`, { products });
       return new Response(
         JSON.stringify({ error: 'Invalid products format' }),
         { status: 400, headers: corsHeaders }
@@ -191,30 +275,69 @@ export default async function handler(request) {
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
     const openaiKey = process.env.OPENAI_API_KEY;
 
+    console.log(`[${requestId}] 🔑 Environment variables check`, {
+      hasAnthropicKey: !!anthropicKey,
+      anthropicKeyLength: anthropicKey?.length,
+      anthropicKeyPrefix: anthropicKey?.substring(0, 10) + '...',
+      hasOpenAIKey: !!openaiKey,
+      provider
+    });
+
     let result;
 
     if (provider === 'anthropic') {
       if (!anthropicKey) {
+        console.log(`[${requestId}] ❌ ANTHROPIC_API_KEY not configured`);
         return new Response(
           JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured' }),
           { status: 500, headers: corsHeaders }
         );
       }
-      result = await callClaudeAPI(messages, products, anthropicKey);
+
+      console.log(`[${requestId}] 🤖 Calling Claude API...`);
+      const apiStartTime = Date.now();
+
+      try {
+        result = await callClaudeAPI(messages, products, anthropicKey);
+        const apiTime = Date.now() - apiStartTime;
+
+        console.log(`[${requestId}] ✅ Claude API response received in ${apiTime}ms`, {
+          hasMessage: !!result.message,
+          messageLength: result.message?.length,
+          productCount: result.products?.length,
+          hasSuggestions: !!result.suggestions
+        });
+      } catch (apiError) {
+        console.error(`[${requestId}] ❌ Claude API error`, {
+          error: apiError.message,
+          stack: apiError.stack,
+          apiTime: Date.now() - apiStartTime
+        });
+        throw apiError;
+      }
+
     } else if (provider === 'openai') {
       if (!openaiKey) {
+        console.log(`[${requestId}] ❌ OPENAI_API_KEY not configured`);
         return new Response(
           JSON.stringify({ error: 'OPENAI_API_KEY not configured' }),
           { status: 500, headers: corsHeaders }
         );
       }
+
+      console.log(`[${requestId}] 🤖 Calling OpenAI API...`);
       result = await callOpenAIAPI(messages, products, openaiKey);
+
     } else {
+      console.log(`[${requestId}] ❌ Invalid provider: ${provider}`);
       return new Response(
         JSON.stringify({ error: 'Invalid provider. Use "anthropic" or "openai"' }),
         { status: 400, headers: corsHeaders }
       );
     }
+
+    const totalTime = Date.now() - startTime;
+    console.log(`[${requestId}] ✅ Request completed successfully in ${totalTime}ms`);
 
     return new Response(
       JSON.stringify(result),
@@ -222,11 +345,20 @@ export default async function handler(request) {
     );
 
   } catch (error) {
-    console.error('Chat API error:', error);
+    const totalTime = Date.now() - startTime;
+
+    console.error(`[${requestId}] ❌ Chat API error (${totalTime}ms)`, {
+      error: error.message,
+      stack: error.stack,
+      name: error.name,
+      cause: error.cause
+    });
+
     return new Response(
       JSON.stringify({
         error: 'Internal server error',
-        details: error.message
+        details: error.message,
+        requestId
       }),
       { status: 500, headers: corsHeaders }
     );
