@@ -230,65 +230,54 @@ class YotoAIChat {
             // If no filters, include all available products
             if (!hasFilters) return true;
 
-            let matchCount = 0;
-            let filterCount = 0;
-
-            // Price filter (hard constraint)
+            // Price filter (hard constraint - must pass or exclude)
             if (filters.maxPrice) {
-                filterCount++;
-                if (parseFloat(product.price) <= filters.maxPrice) {
-                    matchCount++;
-                } else {
+                if (parseFloat(product.price) > filters.maxPrice) {
                     return false; // Hard constraint - exclude if over budget
                 }
             }
 
-            // Runtime filter (hard constraint)
+            // Runtime filter (hard constraint - must pass or exclude)
             if (filters.maxRuntime) {
-                filterCount++;
-                if (product.runtime <= filters.maxRuntime) {
-                    matchCount++;
-                } else {
+                if (product.runtime > filters.maxRuntime) {
                     return false; // Hard constraint - exclude if too long
                 }
             }
 
+            // Soft filters - product passes if it matches ANY of these
+            let hasSoftMatch = false;
+
             // Age filter (soft - boost relevance but don't exclude)
             if (filters.ageRange && product.ageRange) {
-                filterCount++;
                 const [minAge, maxAge] = product.ageRange;
                 // Check for overlap
                 if (minAge <= filters.ageRange[1] && maxAge >= filters.ageRange[0]) {
-                    matchCount++;
+                    hasSoftMatch = true;
                 }
-                // Don't exclude - just affects scoring
             }
 
             // Content type filter (soft - boost relevance)
-            if (filters.contentTypes.length > 0) {
-                filterCount++;
+            if (filters.contentTypes.length > 0 && product.contentType) {
                 const hasMatchingType = filters.contentTypes.some(type =>
-                    product.contentType?.some(ct => ct.toLowerCase().includes(type))
+                    product.contentType.some(ct => ct.toLowerCase().includes(type.toLowerCase()))
                 );
                 if (hasMatchingType) {
-                    matchCount++;
+                    hasSoftMatch = true;
                 }
-                // Don't exclude - just affects scoring
             }
 
             // Keyword matching (soft - boost relevance)
             if (filters.keywords.length > 0) {
-                filterCount++;
                 const searchText = `${product.title} ${product.author} ${product.blurb || ''} ${product.contentType?.join(' ')}`.toLowerCase();
                 const hasKeyword = filters.keywords.some(keyword => searchText.includes(keyword));
                 if (hasKeyword) {
-                    matchCount++;
+                    hasSoftMatch = true;
                 }
-                // Don't exclude - just affects scoring
             }
 
-            // Include if at least one soft filter matches (or no soft filters exist)
-            return matchCount > 0 || filterCount === 0;
+            // Include if we have a soft match OR if there are no soft filters (only hard ones)
+            const hasSoftFilters = filters.ageRange || filters.contentTypes.length > 0 || filters.keywords.length > 0;
+            return hasSoftMatch || !hasSoftFilters;
         });
 
         // Sort by relevance (basic scoring)
