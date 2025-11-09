@@ -1,0 +1,20 @@
+curl 'https://api.yotoplay.com/products/v2/uk?collection=library' \
+-H 'Host: api.yotoplay.com' \
+-H 'Connection: keep-alive' \
+-H 'sec-ch-ua-platform: "macOS"' \
+-H 'Authorization: e3c1d0abb70c59ad66f689f3b3d2d43c' \
+-H 'sec-ch-ua: "Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"' \
+-H 'X-Render-Context: csr' \
+-H 'sec-ch-ua-mobile: ?0' \
+-H 'X-Route: /collections/library' \
+-H 'X-Page-Context: plp' \
+-H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36' \
+-H 'X-Client: web-storefront' \
+-H 'Accept: */*' \
+-H 'Origin: https://uk.yotoplay.com' \
+-H 'Sec-Fetch-Site: same-site' \
+-H 'Sec-Fetch-Mode: cors' \
+-H 'Sec-Fetch-Dest: empty' \
+-H 'Referer: https://uk.yotoplay.com/' \
+-H 'Accept-Language: en-GB,en;q=0.9,fr-CA;q=0.8,fr;q=0.7,en-US;q=0.6' \
+--proxy http://localhost:9090

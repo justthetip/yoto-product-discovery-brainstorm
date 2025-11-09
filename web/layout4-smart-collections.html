@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Collections - Yoto Library</title>
+    <link rel="stylesheet" href="yoto-brand.css">
+    <style>
+        body {
+            margin: 0;
+            background: var(--yoto-cream);
+            padding-bottom: 60px;
+        }
+
+        .collections-header {
+            background: linear-gradient(135deg, var(--yoto-orange) 0%, var(--yoto-coral) 100%);
+            padding: var(--space-xl) var(--space-md);
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .collections-header h1 {
+            margin: 0 0 var(--space-xs) 0;
+        }
+
+        .header-subtitle {
+            opacity: 0.9;
+            font-size: var(--font-size-sm);
+        }
+
+        .search-bar {
+            padding: var(--space-md);
+            background: white;
+            position: sticky;
+            top: 88px;
+            z-index: 99;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .collections-container {
+            padding: var(--space-md) 0;
+        }
+
+        .collection {
+            margin-bottom: var(--space-xxl);
+        }
+
+        .collection-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 var(--space-md) var(--space-md);
+        }
+
+        .collection-title {
+            font-size: var(--font-size-xl);
+            font-weight: var(--font-weight-bold);
+            color: var(--yoto-black);
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        .collection-icon {
+            font-size: 1.5rem;
+        }
+
+        .collection-see-all {
+            color: var(--yoto-orange);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-semibold);
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .collection-see-all:hover {
+            text-decoration: underline;
+        }
+
+        .collection-scroll {
+            display: flex;
+            gap: var(--space-md);
+            padding: 0 var(--space-md);
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        .collection-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        .collection-card {
+            flex-shrink: 0;
+            width: 180px;
+            background: white;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            cursor: pointer;
+            transition: all var(--transition-base);
+            scroll-snap-align: start;
+        }
+
+        .collection-card:active {
+            transform: scale(0.95);
+        }
+
+        .collection-card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-4px);
+        }
+
+        .collection-card-image {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            background: var(--yoto-gray-light);
+        }
+
+        .collection-card-content {
+            padding: var(--space-sm);
+        }
+
+        .collection-card-title {
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-semibold);
+            line-height: 1.3;
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .collection-card-meta {
+            font-size: var(--font-size-xs);
+            color: var(--yoto-gray-dark);
+        }
+
+        .collection-card-price {
+            font-weight: var(--font-weight-bold);
+            color: var(--yoto-orange);
+            margin-top: 4px;
+        }
+
+        .collection-card-badge {
+            position: absolute;
+            top: var(--space-xs);
+            left: var(--space-xs);
+            background: var(--yoto-yellow);
+            color: var(--yoto-black);
+            padding: 2px 8px;
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-bold);
+        }
+
+        .collection-card-wrapper {
+            position: relative;
+        }
+
+        .featured-banner {
+            background: linear-gradient(135deg, var(--yoto-purple) 0%, var(--yoto-blue) 100%);
+            color: white;
+            padding: var(--space-xl) var(--space-md);
+            margin: 0 var(--space-md) var(--space-xl);
+            border-radius: var(--radius-xl);
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            gap: var(--space-md);
+        }
+
+        .featured-content h2 {
+            margin: 0 0 var(--space-xs) 0;
+        }
+
+        .featured-content p {
+            margin: 0;
+            opacity: 0.9;
+        }
+
+        .featured-image {
+            width: 100px;
+            height: 100px;
+            border-radius: var(--radius-md);
+            object-fit: cover;
+        }
+
+        .quick-access-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-md);
+            padding: 0 var(--space-md) var(--space-xl);
+        }
+
+        .quick-access-card {
+            background: white;
+            padding: var(--space-lg);
+            border-radius: var(--radius-lg);
+            text-align: center;
+            cursor: pointer;
+            box-shadow: var(--shadow-md);
+            transition: all var(--transition-base);
+        }
+
+        .quick-access-card:active {
+            transform: scale(0.95);
+        }
+
+        .quick-access-icon {
+            font-size: 3rem;
+            margin-bottom: var(--space-sm);
+        }
+
+        .quick-access-title {
+            font-weight: var(--font-weight-bold);
+            margin-bottom: 4px;
+        }
+
+        .quick-access-count {
+            font-size: var(--font-size-sm);
+            color: var(--yoto-gray-dark);
+        }
+
+        @media (min-width: 640px) {
+            .quick-access-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            .collection-card {
+                width: 200px;
+            }
+        }
+
+        .filter-drawer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: var(--space-lg) var(--space-md);
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
+            transform: translateY(100%);
+            transition: transform var(--transition-base);
+            z-index: 200;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .filter-drawer.open {
+            transform: translateY(0);
+        }
+
+        .filter-drawer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-lg);
+        }
+
+        .filter-drawer-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--yoto-gray-dark);
+        }
+
+        .fab {
+            position: fixed;
+            bottom: var(--space-lg);
+            right: var(--space-lg);
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--yoto-orange);
+            color: white;
+            border: none;
+            font-size: 1.5rem;
+            box-shadow: var(--shadow-xl);
+            cursor: pointer;
+            z-index: 150;
+        }
+
+        .fab:active {
+            transform: scale(0.9);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="collections-header">
+        <h1 class="yoto-heading-1">Collections</h1>
+        <p class="header-subtitle">Curated for you</p>
+    </header>
+
+    <!-- Search -->
+    <div class="search-bar">
+        <div class="yoto-search">
+            <span class="yoto-search-icon">🔍</span>
+            <input type="search" class="yoto-search-input" id="searchInput" placeholder="Search all cards">
+        </div>
+    </div>
+
+    <!-- Quick Access Grid -->
+    <div class="quick-access-grid" id="quickAccessGrid">
+        <div class="quick-access-card" data-collection="new">
+            <div class="quick-access-icon">✨</div>
+            <div class="quick-access-title">New</div>
+            <div class="quick-access-count" id="count-new">0 cards</div>
+        </div>
+        <div class="quick-access-card" data-collection="bedtime">
+            <div class="quick-access-icon">🌙</div>
+            <div class="quick-access-title">Bedtime</div>
+            <div class="quick-access-count" id="count-bedtime">0 cards</div>
+        </div>
+        <div class="quick-access-card" data-collection="music">
+            <div class="quick-access-icon">🎵</div>
+            <div class="quick-access-title">Music</div>
+            <div class="quick-access-count" id="count-music">0 cards</div>
+        </div>
+        <div class="quick-access-card" data-collection="under10">
+            <div class="quick-access-icon">💰</div>
+            <div class="quick-access-title">Under £10</div>
+            <div class="quick-access-count" id="count-under10">0 cards</div>
+        </div>
+    </div>
+
+    <!-- Collections Container -->
+    <div class="collections-container" id="collectionsContainer">
+        <!-- Collections will be inserted here -->
+    </div>
+
+    <!-- Filter Drawer -->
+    <div class="filter-drawer" id="filterDrawer">
+        <div class="filter-drawer-header">
+            <h2>Filters</h2>
+            <button class="filter-drawer-close" id="closeDrawer">✕</button>
+        </div>
+        <div class="filter-content">
+            <p style="color: var(--yoto-gray-dark);">Tap any collection to see all items, or use search above to find specific cards.</p>
+        </div>
+    </div>
+
+    <!-- FAB -->
+    <button class="fab" id="filterFab" title="Filters">⚙️</button>
+
+    <script src="layout4-smart-collections.js"></script>
+</body>
+</html>

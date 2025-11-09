@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Split-Screen Explorer - Yoto Library</title>
+    <link rel="stylesheet" href="yoto-brand.css">
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            background: var(--yoto-gray-light);
+        }
+
+        .split-layout {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Left Panel - Filters */
+        .filters-panel {
+            width: 320px;
+            background: var(--yoto-white);
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+            z-index: 50;
+            flex-shrink: 0;
+        }
+
+        .filters-header {
+            background: linear-gradient(135deg, var(--yoto-orange) 0%, var(--yoto-coral) 100%);
+            padding: var(--space-xl) var(--space-md);
+            color: var(--yoto-white);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .filters-header h1 {
+            margin: 0 0 var(--space-xs) 0;
+            font-size: var(--font-size-2xl);
+        }
+
+        .filters-header p {
+            margin: 0;
+            opacity: 0.9;
+        }
+
+        .filters-content {
+            padding: var(--space-lg) var(--space-md);
+        }
+
+        .filter-group {
+            margin-bottom: var(--space-xl);
+        }
+
+        .filter-group-title {
+            font-weight: var(--font-weight-bold);
+            margin-bottom: var(--space-md);
+            color: var(--yoto-black);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .filter-group-title::after {
+            content: '▼';
+            font-size: 0.8rem;
+            transition: transform var(--transition-base);
+        }
+
+        .filter-group.collapsed .filter-group-title::after {
+            transform: rotate(-90deg);
+        }
+
+        .filter-group.collapsed .filter-group-content {
+            display: none;
+        }
+
+        .filter-group-content {
+            padding-top: var(--space-sm);
+        }
+
+        .filter-option {
+            display: flex;
+            align-items: center;
+            padding: var(--space-sm) var(--space-md);
+            margin-bottom: var(--space-xs);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            user-select: none;
+        }
+
+        .filter-option:hover {
+            background: var(--yoto-cream);
+        }
+
+        .filter-option.active {
+            background: var(--yoto-orange);
+            color: var(--yoto-white);
+        }
+
+        .filter-option input[type="checkbox"] {
+            margin-right: var(--space-sm);
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .filter-count {
+            margin-left: auto;
+            font-size: var(--font-size-sm);
+            opacity: 0.7;
+        }
+
+        .price-range-inputs {
+            display: flex;
+            gap: var(--space-sm);
+            margin-top: var(--space-sm);
+        }
+
+        .price-input {
+            flex: 1;
+            padding: var(--space-sm);
+            border: 2px solid var(--yoto-gray-medium);
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-sm);
+        }
+
+        .price-input:focus {
+            outline: none;
+            border-color: var(--yoto-orange);
+        }
+
+        .clear-filters-btn {
+            width: 100%;
+            margin-top: var(--space-lg);
+        }
+
+        /* Right Panel - Products */
+        .products-panel {
+            flex: 1;
+            overflow-y: auto;
+            background: var(--yoto-gray-light);
+        }
+
+        .products-header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: var(--yoto-white);
+            padding: var(--space-lg) var(--space-md);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .search-and-sort {
+            display: flex;
+            gap: var(--space-md);
+            margin-bottom: var(--space-md);
+        }
+
+        .search-wrapper {
+            flex: 1;
+        }
+
+        .sort-select {
+            padding: var(--space-sm) var(--space-md);
+            border: 2px solid var(--yoto-gray-medium);
+            border-radius: var(--radius-pill);
+            font-size: var(--font-size-sm);
+            background: var(--yoto-white);
+            cursor: pointer;
+        }
+
+        .sort-select:focus {
+            outline: none;
+            border-color: var(--yoto-orange);
+        }
+
+        .active-filters-tags {
+            display: flex;
+            gap: var(--space-xs);
+            flex-wrap: wrap;
+        }
+
+        .filter-tag {
+            background: var(--yoto-orange);
+            color: white;
+            padding: 6px 12px;
+            border-radius: var(--radius-pill);
+            font-size: var(--font-size-xs);
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-xs);
+        }
+
+        .filter-tag button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1.2rem;
+            line-height: 1;
+            padding: 0;
+        }
+
+        .results-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--space-md);
+            color: var(--yoto-gray-dark);
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: var(--space-md);
+            padding: var(--space-md);
+        }
+
+        @media (max-width: 768px) {
+            .split-layout {
+                flex-direction: column;
+            }
+
+            .filters-panel {
+                width: 100%;
+                height: auto;
+                max-height: 50vh;
+            }
+
+            .products-panel {
+                flex: 1;
+            }
+        }
+
+        .toggle-filters-btn {
+            display: none;
+            position: fixed;
+            bottom: var(--space-lg);
+            right: var(--space-lg);
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--yoto-orange);
+            color: white;
+            border: none;
+            box-shadow: var(--shadow-xl);
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 100;
+        }
+
+        @media (max-width: 768px) {
+            .toggle-filters-btn {
+                display: block;
+            }
+
+            .filters-panel {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 85%;
+                max-width: 320px;
+                height: 100vh;
+                transform: translateX(-100%);
+                transition: transform var(--transition-base);
+                z-index: 1000;
+            }
+
+            .filters-panel.open {
+                transform: translateX(0);
+            }
+
+            .filters-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 999;
+            }
+
+            .filters-overlay.open {
+                display: block;
+            }
+        }
+
+        .age-pills {
+            display: flex;
+            gap: var(--space-xs);
+            flex-wrap: wrap;
+            margin-top: var(--space-sm);
+        }
+
+        .age-pill {
+            padding: var(--space-xs) var(--space-md);
+            border: 2px solid var(--yoto-gray-medium);
+            border-radius: var(--radius-pill);
+            font-size: var(--font-size-sm);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            background: white;
+        }
+
+        .age-pill:hover {
+            border-color: var(--yoto-orange);
+        }
+
+        .age-pill.active {
+            background: var(--yoto-orange);
+            color: white;
+            border-color: var(--yoto-orange);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: var(--space-xxl);
+            color: var(--yoto-gray-dark);
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: var(--space-md);
+        }
+    </style>
+</head>
+<body>
+    <div class="filters-overlay" id="filtersOverlay"></div>
+
+    <div class="split-layout">
+        <!-- Left Panel - Filters -->
+        <aside class="filters-panel" id="filtersPanel">
+            <div class="filters-header">
+                <h1>Filters</h1>
+                <p id="totalCount">1,383 cards</p>
+            </div>
+
+            <div class="filters-content">
+                <!-- Age Filter -->
+                <div class="filter-group">
+                    <div class="filter-group-title">Age Range</div>
+                    <div class="filter-group-content">
+                        <div class="age-pills">
+                            <button class="age-pill" data-age="0-2">0-2</button>
+                            <button class="age-pill" data-age="3-5">3-5</button>
+                            <button class="age-pill" data-age="6-8">6-8</button>
+                            <button class="age-pill" data-age="9-11">9-11</button>
+                            <button class="age-pill" data-age="12+">12+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Price Filter -->
+                <div class="filter-group">
+                    <div class="filter-group-title">Price Range</div>
+                    <div class="filter-group-content">
+                        <div class="price-range-inputs">
+                            <input type="number" class="price-input" id="minPrice" placeholder="Min £" min="0" step="0.01">
+                            <input type="number" class="price-input" id="maxPrice" placeholder="Max £" min="0" step="0.01">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Content Types -->
+                <div class="filter-group">
+                    <div class="filter-group-title">Content Type</div>
+                    <div class="filter-group-content" id="contentTypesFilter">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Availability -->
+                <div class="filter-group">
+                    <div class="filter-group-title">Availability</div>
+                    <div class="filter-group-content">
+                        <label class="filter-option">
+                            <input type="checkbox" id="availableOnly">
+                            <span>In stock only</span>
+                        </label>
+                        <label class="filter-option">
+                            <input type="checkbox" id="newOnly">
+                            <span>New arrivals</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Runtime -->
+                <div class="filter-group">
+                    <div class="filter-group-title">Runtime</div>
+                    <div class="filter-group-content">
+                        <label class="filter-option">
+                            <input type="checkbox" data-runtime="short">
+                            <span>Under 30 min</span>
+                        </label>
+                        <label class="filter-option">
+                            <input type="checkbox" data-runtime="medium">
+                            <span>30 min - 2 hours</span>
+                        </label>
+                        <label class="filter-option">
+                            <input type="checkbox" data-runtime="long">
+                            <span>Over 2 hours</span>
+                        </label>
+                    </div>
+                </div>
+
+                <button class="yoto-btn yoto-btn-secondary clear-filters-btn" id="clearFilters">
+                    Clear All Filters
+                </button>
+            </div>
+        </aside>
+
+        <!-- Right Panel - Products -->
+        <main class="products-panel">
+            <div class="products-header">
+                <div class="search-and-sort">
+                    <div class="search-wrapper yoto-search">
+                        <span class="yoto-search-icon">🔍</span>
+                        <input type="search" class="yoto-search-input" id="searchInput" placeholder="Search cards">
+                    </div>
+                    <select class="sort-select" id="sortSelect">
+                        <option value="title-asc">A-Z</option>
+                        <option value="title-desc">Z-A</option>
+                        <option value="price-asc">Price: Low to High</option>
+                        <option value="price-desc">Price: High to Low</option>
+                        <option value="new">Newest First</option>
+                    </select>
+                </div>
+
+                <div class="active-filters-tags" id="activeFilterTags">
+                    <!-- Active filter tags will appear here -->
+                </div>
+            </div>
+
+            <div class="results-info">
+                <span id="resultCount">0 results</span>
+                <span id="viewingCount"></span>
+            </div>
+
+            <div class="products-grid" id="productsGrid">
+                <!-- Products will be inserted here -->
+            </div>
+
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <div class="empty-state-icon">🔍</div>
+                <h2>No cards found</h2>
+                <p>Try adjusting your filters</p>
+                <button class="yoto-btn yoto-btn-primary" onclick="clearAllFilters()">Clear Filters</button>
+            </div>
+        </main>
+    </div>
+
+    <button class="toggle-filters-btn" id="toggleFiltersBtn">⚙️</button>
+
+    <script src="layout2-split-screen.js"></script>
+</body>
+</html>

@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timeline Browser - Yoto Library</title>
+    <link rel="stylesheet" href="yoto-brand.css">
+    <style>
+        body {
+            margin: 0;
+            background: var(--yoto-cream);
+        }
+
+        .timeline-header {
+            background: linear-gradient(135deg, var(--yoto-orange) 0%, var(--yoto-coral) 100%);
+            padding: var(--space-xl) var(--space-md);
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .timeline-header h1 {
+            margin: 0 0 var(--space-xs) 0;
+        }
+
+        .timeline-subtitle {
+            opacity: 0.9;
+        }
+
+        .age-filter-pills {
+            display: flex;
+            gap: var(--space-sm);
+            padding: var(--space-md);
+            overflow-x: auto;
+            background: white;
+            position: sticky;
+            top: 88px;
+            z-index: 99;
+            box-shadow: var(--shadow-sm);
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .age-filter-pill {
+            flex-shrink: 0;
+            padding: var(--space-sm) var(--space-lg);
+            border: 2px solid var(--yoto-gray-medium);
+            background: white;
+            border-radius: var(--radius-pill);
+            font-weight: var(--font-weight-medium);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            white-space: nowrap;
+        }
+
+        .age-filter-pill.active {
+            background: var(--yoto-orange);
+            color: white;
+            border-color: var(--yoto-orange);
+        }
+
+        .timeline-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--space-xl) var(--space-md);
+            position: relative;
+        }
+
+        .timeline-line {
+            position: absolute;
+            left: calc(var(--space-md) + 24px);
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(to bottom,
+                var(--yoto-orange) 0%,
+                var(--yoto-green) 50%,
+                var(--yoto-purple) 100%
+            );
+            border-radius: 2px;
+        }
+
+        .timeline-section {
+            margin-bottom: var(--space-xxl);
+            position: relative;
+        }
+
+        .timeline-section-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            margin-bottom: var(--space-lg);
+            position: relative;
+            z-index: 10;
+        }
+
+        .timeline-dot {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: var(--shadow-md);
+            flex-shrink: 0;
+        }
+
+        .timeline-dot.quick {
+            background: var(--yoto-green);
+        }
+
+        .timeline-dot.short {
+            background: var(--yoto-blue);
+        }
+
+        .timeline-dot.medium {
+            background: var(--yoto-orange);
+        }
+
+        .timeline-dot.long {
+            background: var(--yoto-purple);
+        }
+
+        .timeline-section-title {
+            background: white;
+            padding: var(--space-md) var(--space-lg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            flex: 1;
+        }
+
+        .timeline-section-title h2 {
+            margin: 0 0 4px 0;
+            font-size: var(--font-size-xl);
+        }
+
+        .timeline-section-title p {
+            margin: 0;
+            font-size: var(--font-size-sm);
+            color: var(--yoto-gray-dark);
+        }
+
+        .timeline-cards {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--space-md);
+            margin-left: 72px;
+        }
+
+        @media (min-width: 640px) {
+            .timeline-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .timeline-line {
+                left: calc(50% - 2px);
+            }
+
+            .timeline-section:nth-child(even) .timeline-section-header {
+                flex-direction: row-reverse;
+                text-align: right;
+            }
+
+            .timeline-cards {
+                margin-left: 0;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .timeline-cards {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .timeline-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            transition: all var(--transition-base);
+            cursor: pointer;
+        }
+
+        .timeline-card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+
+        .timeline-card:active {
+            transform: scale(0.98);
+        }
+
+        .timeline-card-image {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            background: var(--yoto-gray-light);
+        }
+
+        .timeline-card-content {
+            padding: var(--space-md);
+        }
+
+        .timeline-card-title {
+            font-weight: var(--font-weight-semibold);
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .timeline-card-author {
+            font-size: var(--font-size-sm);
+            color: var(--yoto-gray-dark);
+            margin-bottom: var(--space-sm);
+        }
+
+        .timeline-card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: var(--space-sm);
+            border-top: 1px solid var(--yoto-gray-light);
+        }
+
+        .timeline-card-runtime {
+            font-size: var(--font-size-sm);
+            color: var(--yoto-gray-dark);
+        }
+
+        .timeline-card-price {
+            font-weight: var(--font-weight-bold);
+            color: var(--yoto-orange);
+        }
+
+        .empty-section {
+            text-align: center;
+            padding: var(--space-xl);
+            color: var(--yoto-gray-dark);
+            background: white;
+            border-radius: var(--radius-lg);
+            margin-left: 72px;
+        }
+
+        @media (min-width: 640px) {
+            .empty-section {
+                margin-left: 0;
+            }
+        }
+
+        .scroll-to-top {
+            position: fixed;
+            bottom: var(--space-lg);
+            right: var(--space-lg);
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--yoto-orange);
+            color: white;
+            border: none;
+            font-size: 1.5rem;
+            box-shadow: var(--shadow-xl);
+            cursor: pointer;
+            display: none;
+            z-index: 100;
+        }
+
+        .scroll-to-top.visible {
+            display: block;
+        }
+
+        .scroll-to-top:active {
+            transform: scale(0.9);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="timeline-header">
+        <h1 class="yoto-heading-1">Browse by Time</h1>
+        <p class="timeline-subtitle">Find the perfect length for any moment</p>
+    </header>
+
+    <!-- Age Filter Pills -->
+    <div class="age-filter-pills">
+        <button class="age-filter-pill active" data-age="all">All Ages</button>
+        <button class="age-filter-pill" data-age="0-2">Ages 0-2</button>
+        <button class="age-filter-pill" data-age="3-5">Ages 3-5</button>
+        <button class="age-filter-pill" data-age="6-8">Ages 6-8</button>
+        <button class="age-filter-pill" data-age="9-11">Ages 9-11</button>
+        <button class="age-filter-pill" data-age="12+">Ages 12+</button>
+    </div>
+
+    <!-- Timeline Container -->
+    <div class="timeline-container">
+        <div class="timeline-line"></div>
+
+        <!-- Quick Listens (< 15 min) -->
+        <section class="timeline-section" id="section-quick">
+            <div class="timeline-section-header">
+                <div class="timeline-dot quick">⚡</div>
+                <div class="timeline-section-title">
+                    <h2>Quick Listens</h2>
+                    <p>Perfect for short activities • Under 15 minutes</p>
+                </div>
+            </div>
+            <div class="timeline-cards" id="cards-quick">
+                <!-- Cards will be inserted here -->
+            </div>
+        </section>
+
+        <!-- Short Stories (15-30 min) -->
+        <section class="timeline-section" id="section-short">
+            <div class="timeline-section-header">
+                <div class="timeline-dot short">📖</div>
+                <div class="timeline-section-title">
+                    <h2>Short Stories</h2>
+                    <p>Great for bedtime or commutes • 15-30 minutes</p>
+                </div>
+            </div>
+            <div class="timeline-cards" id="cards-short">
+                <!-- Cards will be inserted here -->
+            </div>
+        </section>
+
+        <!-- Medium Adventures (30 min - 2 hours) -->
+        <section class="timeline-section" id="section-medium">
+            <div class="timeline-section-header">
+                <div class="timeline-dot medium">🎭</div>
+                <div class="timeline-section-title">
+                    <h2>Medium Adventures</h2>
+                    <p>Engaging stories • 30 minutes to 2 hours</p>
+                </div>
+            </div>
+            <div class="timeline-cards" id="cards-medium">
+                <!-- Cards will be inserted here -->
+            </div>
+        </section>
+
+        <!-- Epic Journeys (2+ hours) -->
+        <section class="timeline-section" id="section-long">
+            <div class="timeline-section-header">
+                <div class="timeline-dot long">🌟</div>
+                <div class="timeline-section-title">
+                    <h2>Epic Journeys</h2>
+                    <p>Long-form content perfect for road trips • 2+ hours</p>
+                </div>
+            </div>
+            <div class="timeline-cards" id="cards-long">
+                <!-- Cards will be inserted here -->
+            </div>
+        </section>
+    </div>
+
+    <!-- Scroll to Top Button -->
+    <button class="scroll-to-top" id="scrollToTop">↑</button>
+
+    <script src="layout5-timeline.js"></script>
+</body>
+</html>

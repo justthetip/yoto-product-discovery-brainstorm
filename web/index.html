@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yoto Content Browser</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <h1>Yoto Library</h1>
+            <div class="stats" id="stats">
+                <span id="totalCount">0</span> items
+            </div>
+        </header>
+
+        <!-- Search Bar -->
+        <div class="search-container">
+            <input
+                type="search"
+                id="searchInput"
+                placeholder="Search titles, authors..."
+                class="search-input"
+            >
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="tabs">
+            <button class="tab active" data-view="all">All</button>
+            <button class="tab" data-view="new">New</button>
+            <button class="tab" data-view="available">Available</button>
+            <button class="tab" data-view="filters">Filters</button>
+        </div>
+
+        <!-- Advanced Filters Panel -->
+        <div class="filters-panel" id="filtersPanel">
+            <div class="filter-group">
+                <label>Price Range</label>
+                <div class="range-inputs">
+                    <input type="number" id="minPrice" placeholder="Min £" min="0" step="0.01">
+                    <span>-</span>
+                    <input type="number" id="maxPrice" placeholder="Max £" min="0" step="0.01">
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label>Age Range</label>
+                <div class="range-inputs">
+                    <input type="number" id="minAge" placeholder="Min" min="0" max="14">
+                    <span>-</span>
+                    <input type="number" id="maxAge" placeholder="Max" min="0" max="14">
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label>Content Type</label>
+                <select id="contentType" class="filter-select">
+                    <option value="">All Types</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label>Sort By</label>
+                <select id="sortBy" class="filter-select">
+                    <option value="title">Title (A-Z)</option>
+                    <option value="title-desc">Title (Z-A)</option>
+                    <option value="price-asc">Price (Low to High)</option>
+                    <option value="price-desc">Price (High to Low)</option>
+                    <option value="runtime-desc">Runtime (Longest)</option>
+                    <option value="runtime-asc">Runtime (Shortest)</option>
+                </select>
+            </div>
+
+            <div class="filter-actions">
+                <button class="btn btn-secondary" id="clearFilters">Clear All</button>
+                <button class="btn btn-primary" id="applyFilters">Apply</button>
+            </div>
+        </div>
+
+        <!-- Quick Filters -->
+        <div class="quick-filters" id="quickFilters">
+            <button class="chip" data-filter="under10">Under £10</button>
+            <button class="chip" data-filter="short">Under 30min</button>
+            <button class="chip" data-filter="long">2+ hours</button>
+            <button class="chip" data-filter="toddler">Ages 2-4</button>
+            <button class="chip" data-filter="kids">Ages 5-8</button>
+        </div>
+
+        <!-- Active Filters Display -->
+        <div class="active-filters" id="activeFilters"></div>
+
+        <!-- Products Grid -->
+        <div class="products-container">
+            <div class="products-grid" id="productsGrid">
+                <!-- Products will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Loading products...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <p>No products found</p>
+            <button class="btn btn-secondary" onclick="clearAllFilters()">Clear Filters</button>
+        </div>
+
+        <!-- Load More Button -->
+        <div class="load-more-container" id="loadMoreContainer" style="display: none;">
+            <button class="btn btn-secondary" id="loadMoreBtn">Load More</button>
+        </div>
+    </div>
+
+    <!-- Product Detail Modal -->
+    <div class="modal" id="productModal">
+        <div class="modal-content">
+            <button class="modal-close" id="modalClose">&times;</button>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

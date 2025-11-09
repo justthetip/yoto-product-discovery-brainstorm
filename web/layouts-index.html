@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yoto Discovery Layouts - Explore Different UX Approaches</title>
+    <link rel="stylesheet" href="yoto-brand.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, var(--yoto-cream) 0%, var(--yoto-gray-light) 100%);
+            min-height: 100vh;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, var(--yoto-orange) 0%, var(--yoto-coral) 100%);
+            color: white;
+            padding: var(--space-xxl) var(--space-md);
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: var(--font-size-3xl);
+            margin: 0 0 var(--space-md) 0;
+        }
+
+        .hero p {
+            font-size: var(--font-size-lg);
+            opacity: 0.95;
+            max-width: 600px;
+            margin: 0 auto var(--space-md);
+        }
+
+        .hero-stats {
+            display: flex;
+            justify-content: center;
+            gap: var(--space-xl);
+            margin-top: var(--space-lg);
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: var(--font-size-3xl);
+            font-weight: var(--font-weight-bold);
+            display: block;
+        }
+
+        .stat-label {
+            font-size: var(--font-size-sm);
+            opacity: 0.9;
+        }
+
+        .layouts-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--space-xxl) var(--space-md);
+        }
+
+        .layouts-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--space-xl);
+        }
+
+        @media (min-width: 768px) {
+            .layouts-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .layout-card {
+            background: white;
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+            transition: all var(--transition-base);
+            cursor: pointer;
+        }
+
+        .layout-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .layout-card:active {
+            transform: translateY(-4px);
+        }
+
+        .layout-preview {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, var(--yoto-gray-light) 0%, var(--yoto-white) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .layout-preview::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.3) 50%, transparent 70%);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .layout-preview.layout1 {
+            background: linear-gradient(135deg, #FFE5E0 0%, #FFF5F0 100%);
+        }
+
+        .layout-preview.layout2 {
+            background: linear-gradient(135deg, #E0EEFF 0%, #F0F7FF 100%);
+        }
+
+        .layout-preview.layout3 {
+            background: linear-gradient(135deg, #E8F5E9 0%, #F1F8F4 100%);
+        }
+
+        .layout-preview.layout4 {
+            background: linear-gradient(135deg, #FFF3E0 0%, #FFF9F0 100%);
+        }
+
+        .layout-preview.layout5 {
+            background: linear-gradient(135deg, #F3E5F5 0%, #F9F0FA 100%);
+        }
+
+        .layout-content {
+            padding: var(--space-xl);
+        }
+
+        .layout-number {
+            color: var(--yoto-orange);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-bold);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: var(--space-xs);
+        }
+
+        .layout-title {
+            font-size: var(--font-size-2xl);
+            font-weight: var(--font-weight-bold);
+            margin: 0 0 var(--space-sm) 0;
+        }
+
+        .layout-description {
+            color: var(--yoto-gray-dark);
+            line-height: 1.6;
+            margin-bottom: var(--space-lg);
+        }
+
+        .layout-features {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 var(--space-lg) 0;
+        }
+
+        .layout-features li {
+            padding: var(--space-xs) 0;
+            color: var(--yoto-gray-dark);
+            font-size: var(--font-size-sm);
+        }
+
+        .layout-features li::before {
+            content: '✓ ';
+            color: var(--yoto-success);
+            font-weight: var(--font-weight-bold);
+            margin-right: var(--space-xs);
+        }
+
+        .layout-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-xs);
+            margin-bottom: var(--space-lg);
+        }
+
+        .layout-tag {
+            background: var(--yoto-cream);
+            color: var(--yoto-black);
+            padding: 4px 12px;
+            border-radius: var(--radius-pill);
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-medium);
+        }
+
+        .layout-cta {
+            width: 100%;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: var(--font-size-2xl);
+            font-weight: var(--font-weight-bold);
+            margin-bottom: var(--space-xl);
+            color: var(--yoto-black);
+        }
+
+        .original-demo {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: var(--space-xl);
+            box-shadow: var(--shadow-md);
+            margin-bottom: var(--space-xxl);
+            text-align: center;
+        }
+
+        .original-demo h3 {
+            margin-bottom: var(--space-md);
+        }
+
+        .original-demo p {
+            color: var(--yoto-gray-dark);
+            margin-bottom: var(--space-lg);
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero Section -->
+    <section class="hero">
+        <h1>Yoto Product Discovery</h1>
+        <p>Exploring 5 different UX approaches to content discovery and filtering</p>
+
+        <div class="hero-stats">
+            <div class="stat">
+                <span class="stat-number">5</span>
+                <span class="stat-label">Unique Layouts</span>
+            </div>
+            <div class="stat">
+                <span class="stat-number">1,383</span>
+                <span class="stat-label">Products</span>
+            </div>
+            <div class="stat">
+                <span class="stat-number">100%</span>
+                <span class="stat-label">Yoto Brand</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Layouts Container -->
+    <div class="layouts-container">
+        <h2 class="section-title">Choose Your Browsing Style</h2>
+
+        <div class="layouts-grid">
+            <!-- Layout 1: Visual Category Grid -->
+            <div class="layout-card" onclick="window.location.href='layout1-category-grid.html'">
+                <div class="layout-preview layout1">
+                    📚
+                </div>
+                <div class="layout-content">
+                    <div class="layout-number">Layout 01</div>
+                    <h3 class="layout-title">Visual Category Grid</h3>
+                    <p class="layout-description">
+                        Browse by beautifully illustrated categories. Each category shows a preview collage of products, making it easy to discover content visually.
+                    </p>
+                    <div class="layout-tags">
+                        <span class="layout-tag">Category-First</span>
+                        <span class="layout-tag">Visual</span>
+                        <span class="layout-tag">Mobile-Friendly</span>
+                    </div>
+                    <ul class="layout-features">
+                        <li>Large visual category tiles with product previews</li>
+                        <li>Age-based quick filters with emoji</li>
+                        <li>One-tap navigation into categories</li>
+                        <li>Smart filter combinations</li>
+                    </ul>
+                    <button class="yoto-btn yoto-btn-primary layout-cta">
+                        Try Visual Grid →
+                    </button>
+                </div>
+            </div>
+
+            <!-- Layout 2: Split-Screen Explorer -->
+            <div class="layout-card" onclick="window.location.href='layout2-split-screen.html'">
+                <div class="layout-preview layout2">
+                    ⚡
+                </div>
+                <div class="layout-content">
+                    <div class="layout-number">Layout 02</div>
+                    <h3 class="layout-title">Split-Screen Explorer</h3>
+                    <p class="layout-description">
+                        Power-user interface with persistent filters on the left and instant product results on the right. Perfect for desktop and tablets.
+                    </p>
+                    <div class="layout-tags">
+                        <span class="layout-tag">Power-User</span>
+                        <span class="layout-tag">Desktop-Optimized</span>
+                        <span class="layout-tag">Fast</span>
+                    </div>
+                    <ul class="layout-features">
+                        <li>Dual-panel design with live filtering</li>
+                        <li>Expandable filter tree with checkboxes</li>
+                        <li>Active filter tags at top</li>
+                        <li>Masonry grid product display</li>
+                    </ul>
+                    <button class="yoto-btn yoto-btn-primary layout-cta">
+                        Try Split-Screen →
+                    </button>
+                </div>
+            </div>
+
+            <!-- Layout 3: Swipeable Story Mode -->
+            <div class="layout-card" onclick="window.location.href='layout3-swipe-mode.html'">
+                <div class="layout-preview layout3">
+                    💫
+                </div>
+                <div class="layout-content">
+                    <div class="layout-number">Layout 03</div>
+                    <h3 class="layout-title">Swipeable Story Mode</h3>
+                    <p class="layout-description">
+                        Tinder-style card interface. Swipe right to like, left to skip. Perfect for discovery and decision-making one card at a time.
+                    </p>
+                    <div class="layout-tags">
+                        <span class="layout-tag">Mobile-First</span>
+                        <span class="layout-tag">Fun</span>
+                        <span class="layout-tag">Engaging</span>
+                    </div>
+                    <ul class="layout-features">
+                        <li>Full-screen cards with swipe gestures</li>
+                        <li>Like/skip with visual feedback</li>
+                        <li>Undo functionality</li>
+                        <li>Keyboard shortcuts for desktop</li>
+                    </ul>
+                    <button class="yoto-btn yoto-btn-primary layout-cta">
+                        Try Swipe Mode →
+                    </button>
+                </div>
+            </div>
+
+            <!-- Layout 4: Smart Collections -->
+            <div class="layout-card" onclick="window.location.href='layout4-smart-collections.html'">
+                <div class="layout-preview layout4">
+                    ✨
+                </div>
+                <div class="layout-content">
+                    <div class="layout-number">Layout 04</div>
+                    <h3 class="layout-title">Smart Collections</h3>
+                    <p class="layout-description">
+                        Curated collections with horizontal scrolling. Netflix-style browsing with contextual groupings like "Road Trip Ready" and "Bedtime Favorites".
+                    </p>
+                    <div class="layout-tags">
+                        <span class="layout-tag">Curated</span>
+                        <span class="layout-tag">Discovery</span>
+                        <span class="layout-tag">Contextual</span>
+                    </div>
+                    <ul class="layout-features">
+                        <li>10 curated collections</li>
+                        <li>Horizontal scrolling rows</li>
+                        <li>Quick access grid for common searches</li>
+                        <li>Expandable collections</li>
+                    </ul>
+                    <button class="yoto-btn yoto-btn-primary layout-cta">
+                        Try Collections →
+                    </button>
+                </div>
+            </div>
+
+            <!-- Layout 5: Timeline Scroller -->
+            <div class="layout-card" onclick="window.location.href='layout5-timeline.html'">
+                <div class="layout-preview layout5">
+                    ⏱️
+                </div>
+                <div class="layout-content">
+                    <div class="layout-number">Layout 05</div>
+                    <h3 class="layout-title">Timeline Scroller</h3>
+                    <p class="layout-description">
+                        Browse by time commitment. Products grouped by runtime from "Quick Listens" to "Epic Journeys". Perfect for time-based discovery.
+                    </p>
+                    <div class="layout-tags">
+                        <span class="layout-tag">Time-Based</span>
+                        <span class="layout-tag">Unique</span>
+                        <span class="layout-tag">Practical</span>
+                    </div>
+                    <ul class="layout-features">
+                        <li>Visual timeline with color-coded sections</li>
+                        <li>4 runtime categories</li>
+                        <li>Age filter integration</li>
+                        <li>Perfect for planning activities</li>
+                    </ul>
+                    <button class="yoto-btn yoto-btn-primary layout-cta">
+                        Try Timeline →
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Original Demo -->
+        <div class="original-demo">
+            <h3>Also check out the original demo</h3>
+            <p>A comprehensive mobile-first interface with all standard features</p>
+            <a href="index.html" class="yoto-btn yoto-btn-secondary">
+                View Original Interface
+            </a>
+        </div>
+    </div>
+</body>
+</html>

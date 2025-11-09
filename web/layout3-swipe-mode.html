@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swipe Mode - Yoto Library</title>
+    <link rel="stylesheet" href="yoto-brand.css">
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            background: linear-gradient(135deg, var(--yoto-cream) 0%, var(--yoto-gray-light) 100%);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .swipe-header {
+            background: linear-gradient(135deg, var(--yoto-orange) 0%, var(--yoto-coral) 100%);
+            padding: var(--space-lg) var(--space-md);
+            color: white;
+            text-align: center;
+            box-shadow: var(--shadow-md);
+        }
+
+        .swipe-header h1 {
+            margin: 0 0 var(--space-xs) 0;
+            font-size: var(--font-size-2xl);
+        }
+
+        .stack-info {
+            opacity: 0.9;
+            font-size: var(--font-size-sm);
+        }
+
+        .filter-pills-container {
+            padding: var(--space-md);
+            background: white;
+            display: flex;
+            gap: var(--space-sm);
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .filter-pill {
+            padding: var(--space-xs) var(--space-md);
+            border: 2px solid var(--yoto-gray-medium);
+            background: white;
+            border-radius: var(--radius-pill);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all var(--transition-fast);
+        }
+
+        .filter-pill:active {
+            transform: scale(0.95);
+        }
+
+        .filter-pill.active {
+            background: var(--yoto-orange);
+            color: white;
+            border-color: var(--yoto-orange);
+        }
+
+        .card-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-xl);
+            overflow: hidden;
+        }
+
+        .card-stack {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            height: 600px;
+        }
+
+        .swipe-card {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: white;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-xl);
+            cursor: grab;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .swipe-card:active {
+            cursor: grabbing;
+        }
+
+        .swipe-card.swiping {
+            transition: none;
+        }
+
+        .swipe-card.swiped-right {
+            animation: swipeRight 0.3s ease-out forwards;
+        }
+
+        .swipe-card.swiped-left {
+            animation: swipeLeft 0.3s ease-out forwards;
+        }
+
+        @keyframes swipeRight {
+            to {
+                transform: translateX(150%) rotate(30deg);
+                opacity: 0;
+            }
+        }
+
+        @keyframes swipeLeft {
+            to {
+                transform: translateX(-150%) rotate(-30deg);
+                opacity: 0;
+            }
+        }
+
+        .card-image {
+            width: 100%;
+            height: 50%;
+            object-fit: cover;
+            background: var(--yoto-gray-light);
+        }
+
+        .card-content {
+            flex: 1;
+            padding: var(--space-xl);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .card-badges {
+            display: flex;
+            gap: var(--space-xs);
+            margin-bottom: var(--space-md);
+            flex-wrap: wrap;
+        }
+
+        .card-title {
+            font-size: var(--font-size-2xl);
+            font-weight: var(--font-weight-bold);
+            margin-bottom: var(--space-xs);
+            line-height: 1.2;
+        }
+
+        .card-author {
+            font-size: var(--font-size-lg);
+            color: var(--yoto-gray-dark);
+            margin-bottom: var(--space-lg);
+        }
+
+        .card-description {
+            font-size: var(--font-size-base);
+            line-height: 1.6;
+            color: var(--yoto-black);
+            margin-bottom: var(--space-lg);
+            flex: 1;
+        }
+
+        .card-meta {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-md);
+            margin-bottom: var(--space-lg);
+        }
+
+        .meta-item {
+            text-align: center;
+            padding: var(--space-sm);
+            background: var(--yoto-cream);
+            border-radius: var(--radius-md);
+        }
+
+        .meta-label {
+            font-size: var(--font-size-xs);
+            color: var(--yoto-gray-dark);
+            margin-bottom: 4px;
+        }
+
+        .meta-value {
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-bold);
+            color: var(--yoto-orange);
+        }
+
+        .card-price {
+            text-align: center;
+            font-size: var(--font-size-3xl);
+            font-weight: var(--font-weight-bold);
+            color: var(--yoto-orange);
+        }
+
+        .swipe-hint {
+            position: absolute;
+            top: var(--space-md);
+            right: var(--space-md);
+            left: var(--space-md);
+            pointer-events: none;
+            display: flex;
+            justify-content: space-between;
+            opacity: 0;
+            transition: opacity var(--transition-base);
+        }
+
+        .swipe-card.swiping .swipe-hint {
+            opacity: 1;
+        }
+
+        .hint-left, .hint-right {
+            padding: var(--space-sm) var(--space-lg);
+            border-radius: var(--radius-pill);
+            font-weight: var(--font-weight-bold);
+            font-size: var(--font-size-xl);
+        }
+
+        .hint-left {
+            background: rgba(255, 99, 71, 0.9);
+            color: white;
+        }
+
+        .hint-right {
+            background: rgba(78, 206, 122, 0.9);
+            color: white;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: var(--space-lg);
+            padding: var(--space-xl) var(--space-md);
+            background: white;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+
+        .action-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-size: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-md);
+            transition: all var(--transition-base);
+        }
+
+        .action-btn:active {
+            transform: scale(0.9);
+        }
+
+        .btn-skip {
+            background: var(--yoto-white);
+            color: var(--yoto-orange);
+            border: 3px solid var(--yoto-orange);
+        }
+
+        .btn-like {
+            background: var(--yoto-success);
+            color: white;
+        }
+
+        .btn-undo {
+            background: var(--yoto-gray-light);
+            color: var(--yoto-gray-dark);
+            font-size: 1.5rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: var(--space-xxl);
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: var(--space-lg);
+        }
+
+        .liked-count {
+            position: fixed;
+            top: var(--space-lg);
+            right: var(--space-lg);
+            background: var(--yoto-success);
+            color: white;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: var(--font-weight-bold);
+            box-shadow: var(--shadow-lg);
+            z-index: 100;
+            cursor: pointer;
+        }
+
+        @media (max-width: 640px) {
+            .card-stack {
+                max-width: 100%;
+                height: 550px;
+            }
+
+            .card-content {
+                padding: var(--space-md);
+            }
+        }
+
+        .no-cards {
+            display: none;
+            text-align: center;
+            padding: var(--space-xxl);
+        }
+
+        .no-cards.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="swipe-header">
+        <h1>Swipe to Discover</h1>
+        <div class="stack-info">
+            <span id="stackCount">0</span> cards to explore
+        </div>
+    </header>
+
+    <!-- Filter Pills -->
+    <div class="filter-pills-container">
+        <button class="filter-pill active" data-filter="all">✨ All</button>
+        <button class="filter-pill" data-filter="ages-0-2">👶 0-2</button>
+        <button class="filter-pill" data-filter="ages-3-5">😊 3-5</button>
+        <button class="filter-pill" data-filter="ages-6-8">😎 6-8</button>
+        <button class="filter-pill" data-filter="ages-9+">🤓 9+</button>
+        <button class="filter-pill" data-filter="new">🆕 New</button>
+        <button class="filter-pill" data-filter="stories">📚 Stories</button>
+        <button class="filter-pill" data-filter="music">🎵 Music</button>
+        <button class="filter-pill" data-filter="under10">💰 Under £10</button>
+    </div>
+
+    <!-- Liked Count Badge -->
+    <div class="liked-count" id="likedCount" title="View liked cards">
+        0
+    </div>
+
+    <!-- Card Container -->
+    <div class="card-container">
+        <div class="card-stack" id="cardStack">
+            <!-- Cards will be inserted here -->
+        </div>
+
+        <div class="no-cards" id="noCards">
+            <div class="empty-state-icon">🎉</div>
+            <h2>All done!</h2>
+            <p>You've seen all the cards in this filter.</p>
+            <button class="yoto-btn yoto-btn-primary" onclick="resetCards()">
+                Start Over
+            </button>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+        <button class="action-btn btn-undo" id="undoBtn" title="Undo">↶</button>
+        <button class="action-btn btn-skip" id="skipBtn" title="Skip">✕</button>
+        <button class="action-btn btn-like" id="likeBtn" title="Like">♥</button>
+    </div>
+
+    <script src="layout3-swipe-mode.js"></script>
+</body>
+</html>

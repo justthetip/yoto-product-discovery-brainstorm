@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Category Grid - Yoto Library</title>
+    <link rel="stylesheet" href="yoto-brand.css">
+    <style>
+        body {
+            background: var(--yoto-cream);
+        }
+
+        .layout-header {
+            background: linear-gradient(135deg, var(--yoto-orange) 0%, var(--yoto-coral) 100%);
+            padding: var(--space-xl) var(--space-md);
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .layout-title {
+            color: var(--yoto-white);
+            margin-bottom: var(--space-sm);
+        }
+
+        .product-count {
+            color: var(--yoto-white);
+            opacity: 0.9;
+        }
+
+        .search-section {
+            padding: var(--space-lg) var(--space-md);
+            background: var(--yoto-white);
+        }
+
+        .age-quick-filters {
+            display: flex;
+            gap: var(--space-md);
+            overflow-x: auto;
+            padding: var(--space-md);
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .age-filter-btn {
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: var(--space-md) var(--space-lg);
+            border-radius: var(--radius-lg);
+            border: none;
+            cursor: pointer;
+            transition: all var(--transition-base);
+            min-width: 100px;
+        }
+
+        .age-filter-btn.age-0-2 { background: var(--yoto-orange); color: white; }
+        .age-filter-btn.age-3-5 { background: var(--yoto-blue); color: white; }
+        .age-filter-btn.age-6-8 { background: var(--yoto-green); color: white; }
+        .age-filter-btn.age-9-plus { background: var(--yoto-purple); color: white; }
+
+        .age-filter-btn:active {
+            transform: scale(0.95);
+        }
+
+        .age-filter-btn .emoji {
+            font-size: 2rem;
+            margin-bottom: var(--space-xs);
+        }
+
+        .age-filter-btn .label {
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+        }
+
+        .age-filter-btn .range {
+            font-size: var(--font-size-xl);
+            font-weight: var(--font-weight-bold);
+        }
+
+        .category-grid-section {
+            padding: var(--space-lg) var(--space-md);
+        }
+
+        .section-title {
+            font-size: var(--font-size-2xl);
+            font-weight: var(--font-weight-bold);
+            margin-bottom: var(--space-lg);
+            color: var(--yoto-black);
+        }
+
+        .category-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--space-md);
+        }
+
+        @media (min-width: 640px) {
+            .category-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .category-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .category-card {
+            position: relative;
+            background: var(--yoto-white);
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            cursor: pointer;
+            transition: all var(--transition-base);
+            box-shadow: var(--shadow-md);
+            min-height: 200px;
+        }
+
+        .category-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .category-card:active {
+            transform: scale(0.98);
+        }
+
+        .category-card-images {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2px;
+            padding: 2px;
+            background: var(--yoto-gray-light);
+        }
+
+        .category-thumb {
+            aspect-ratio: 1;
+            object-fit: cover;
+            background: var(--yoto-gray-light);
+        }
+
+        .category-card-content {
+            padding: var(--space-lg);
+            background: linear-gradient(to top, white 0%, white 70%, transparent 100%);
+        }
+
+        .category-name {
+            font-size: var(--font-size-xl);
+            font-weight: var(--font-weight-bold);
+            margin-bottom: var(--space-xs);
+            color: var(--yoto-black);
+        }
+
+        .category-count {
+            font-size: var(--font-size-sm);
+            color: var(--yoto-gray-dark);
+        }
+
+        .category-icon {
+            font-size: 2rem;
+            margin-bottom: var(--space-sm);
+        }
+
+        .quick-filters-chips {
+            display: flex;
+            gap: var(--space-sm);
+            padding: 0 var(--space-md) var(--space-md);
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .products-section {
+            padding: var(--space-lg) var(--space-md);
+            display: none;
+        }
+
+        .products-section.active {
+            display: block;
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--space-md);
+        }
+
+        @media (min-width: 640px) {
+            .products-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .products-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        .back-button {
+            margin-bottom: var(--space-lg);
+        }
+
+        .filter-summary {
+            background: var(--yoto-white);
+            padding: var(--space-md);
+            border-radius: var(--radius-lg);
+            margin-bottom: var(--space-md);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .filter-tags {
+            display: flex;
+            gap: var(--space-xs);
+            flex-wrap: wrap;
+        }
+
+        .filter-tag {
+            background: var(--yoto-orange);
+            color: white;
+            padding: 4px 12px;
+            border-radius: var(--radius-pill);
+            font-size: var(--font-size-sm);
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+        }
+
+        .filter-tag button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1.2rem;
+            line-height: 1;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="layout-header">
+        <h1 class="layout-title yoto-heading-1">Discover Yoto</h1>
+        <p class="product-count" id="productCount">1,383 cards</p>
+    </header>
+
+    <!-- Search -->
+    <div class="search-section">
+        <div class="yoto-search">
+            <span class="yoto-search-icon">🔍</span>
+            <input
+                type="search"
+                class="yoto-search-input"
+                id="searchInput"
+                placeholder="Search cards"
+            >
+        </div>
+    </div>
+
+    <!-- Age Quick Filters -->
+    <div class="age-quick-filters">
+        <button class="age-filter-btn age-0-2" data-age="0-2">
+            <div class="emoji">😊</div>
+            <div class="label">Ages</div>
+            <div class="range">0-2</div>
+        </button>
+        <button class="age-filter-btn age-3-5" data-age="3-5">
+            <div class="emoji">😄</div>
+            <div class="label">Ages</div>
+            <div class="range">3-5</div>
+        </button>
+        <button class="age-filter-btn age-6-8" data-age="6-8">
+            <div class="emoji">😎</div>
+            <div class="label">Ages</div>
+            <div class="range">6-8</div>
+        </button>
+        <button class="age-filter-btn age-9-plus" data-age="9+">
+            <div class="emoji">🤓</div>
+            <div class="label">Ages</div>
+            <div class="range">9+</div>
+        </button>
+    </div>
+
+    <!-- Quick Filter Chips -->
+    <div class="quick-filters-chips">
+        <button class="yoto-chip" data-filter="new">✨ New arrivals</button>
+        <button class="yoto-chip" data-filter="available">✓ In stock</button>
+        <button class="yoto-chip" data-filter="under10">💰 Under £10</button>
+        <button class="yoto-chip" data-filter="music">🎵 Music</button>
+        <button class="yoto-chip" data-filter="bedtime">🌙 Bedtime</button>
+    </div>
+
+    <!-- Category Grid Section -->
+    <section class="category-grid-section" id="categorySection">
+        <h2 class="section-title">Browse by Category</h2>
+        <div class="category-grid" id="categoryGrid">
+            <!-- Categories will be inserted here -->
+        </div>
+    </section>
+
+    <!-- Products Section (hidden by default) -->
+    <section class="products-section" id="productsSection">
+        <button class="yoto-btn yoto-btn-secondary back-button" id="backButton">
+            ← Back to Categories
+        </button>
+
+        <div class="filter-summary" id="filterSummary">
+            <div class="filter-tags" id="filterTags"></div>
+            <span id="resultCount">0 items</span>
+        </div>
+
+        <div class="products-grid" id="productsGrid">
+            <!-- Products will be inserted here -->
+        </div>
+    </section>
+
+    <script src="layout1-category-grid.js"></script>
+</body>
+</html>

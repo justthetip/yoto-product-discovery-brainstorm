@@ -1,0 +1,372 @@
+/* Yoto Brand Design System */
+
+:root {
+    /* Yoto Brand Colors */
+    --yoto-orange: #FF6347;
+    --yoto-coral: #FF7961;
+    --yoto-red: #E55242;
+    --yoto-blue: #5B8DE5;
+    --yoto-green: #4ECE7A;
+    --yoto-yellow: #FFD166;
+    --yoto-purple: #6B5CA5;
+
+    /* Neutrals */
+    --yoto-white: #FFFFFF;
+    --yoto-cream: #FFF9F5;
+    --yoto-gray-light: #F5F5F5;
+    --yoto-gray-medium: #CCCCCC;
+    --yoto-gray-dark: #666666;
+    --yoto-black: #1A1A1A;
+
+    /* Semantic Colors */
+    --yoto-success: #4ECE7A;
+    --yoto-warning: #FFD166;
+    --yoto-info: #5B8DE5;
+
+    /* Spacing (Yoto uses generous spacing) */
+    --space-xs: 0.5rem;
+    --space-sm: 0.75rem;
+    --space-md: 1rem;
+    --space-lg: 1.5rem;
+    --space-xl: 2rem;
+    --space-xxl: 3rem;
+
+    /* Border Radius (Yoto loves rounded corners) */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+    --radius-pill: 999px;
+
+    /* Shadows */
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 8px rgba(0,0,0,0.12);
+    --shadow-lg: 0 8px 16px rgba(0,0,0,0.15);
+    --shadow-xl: 0 12px 24px rgba(0,0,0,0.18);
+
+    /* Typography */
+    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+    --font-size-3xl: 2rem;
+
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+
+    /* Transitions */
+    --transition-fast: 150ms ease;
+    --transition-base: 200ms ease;
+    --transition-slow: 300ms ease;
+}
+
+/* Base Reset */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-family);
+    font-size: var(--font-size-base);
+    line-height: 1.6;
+    color: var(--yoto-black);
+    background: var(--yoto-white);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Yoto Typography */
+.yoto-heading-1 {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-bold);
+    line-height: 1.2;
+    margin: 0;
+}
+
+.yoto-heading-2 {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+    line-height: 1.3;
+    margin: 0;
+}
+
+.yoto-heading-3 {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.4;
+    margin: 0;
+}
+
+.yoto-body {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-normal);
+    line-height: 1.6;
+}
+
+.yoto-small {
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+}
+
+/* Yoto Buttons */
+.yoto-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-sm) var(--space-lg);
+    border: none;
+    border-radius: var(--radius-pill);
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-base);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    text-decoration: none;
+    gap: var(--space-xs);
+}
+
+.yoto-btn:active {
+    transform: scale(0.98);
+}
+
+.yoto-btn-primary {
+    background: var(--yoto-orange);
+    color: var(--yoto-white);
+}
+
+.yoto-btn-primary:hover {
+    background: var(--yoto-red);
+}
+
+.yoto-btn-secondary {
+    background: var(--yoto-white);
+    color: var(--yoto-orange);
+    border: 2px solid var(--yoto-orange);
+}
+
+.yoto-btn-secondary:hover {
+    background: var(--yoto-cream);
+}
+
+.yoto-btn-ghost {
+    background: transparent;
+    color: var(--yoto-orange);
+}
+
+.yoto-btn-ghost:hover {
+    background: var(--yoto-cream);
+}
+
+/* Yoto Cards */
+.yoto-card {
+    background: var(--yoto-white);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    transition: all var(--transition-base);
+}
+
+.yoto-card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+}
+
+.yoto-card-image {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    background: var(--yoto-gray-light);
+}
+
+.yoto-card-content {
+    padding: var(--space-md);
+}
+
+/* Yoto Badges */
+.yoto-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: var(--radius-pill);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.yoto-badge-new {
+    background: var(--yoto-yellow);
+    color: var(--yoto-black);
+}
+
+.yoto-badge-available {
+    background: var(--yoto-success);
+    color: var(--yoto-white);
+}
+
+.yoto-badge-age {
+    background: var(--yoto-blue);
+    color: var(--yoto-white);
+}
+
+/* Yoto Chips/Pills */
+.yoto-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--space-xs) var(--space-md);
+    background: var(--yoto-white);
+    border: 2px solid var(--yoto-gray-medium);
+    border-radius: var(--radius-pill);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+}
+
+.yoto-chip:hover {
+    border-color: var(--yoto-orange);
+    background: var(--yoto-cream);
+}
+
+.yoto-chip.active {
+    background: var(--yoto-orange);
+    border-color: var(--yoto-orange);
+    color: var(--yoto-white);
+}
+
+/* Yoto Search Bar */
+.yoto-search {
+    position: relative;
+    width: 100%;
+}
+
+.yoto-search-input {
+    width: 100%;
+    padding: var(--space-md) var(--space-md) var(--space-md) 3rem;
+    border: 3px solid var(--yoto-orange);
+    border-radius: var(--radius-pill);
+    font-size: var(--font-size-lg);
+    outline: none;
+    transition: all var(--transition-base);
+}
+
+.yoto-search-input:focus {
+    box-shadow: 0 0 0 4px rgba(255, 99, 71, 0.2);
+}
+
+.yoto-search-icon {
+    position: absolute;
+    left: var(--space-md);
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--yoto-orange);
+    font-size: 1.5rem;
+}
+
+/* Yoto Header */
+.yoto-header {
+    background: var(--yoto-orange);
+    color: var(--yoto-white);
+    padding: var(--space-lg) var(--space-md);
+}
+
+/* Yoto Age Buttons (like in screenshot) */
+.yoto-age-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-lg);
+    border-radius: var(--radius-lg);
+    font-weight: var(--font-weight-bold);
+    color: var(--yoto-white);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    border: none;
+    min-height: 120px;
+}
+
+.yoto-age-btn:active {
+    transform: scale(0.95);
+}
+
+.yoto-age-btn.age-0-2 {
+    background: var(--yoto-orange);
+}
+
+.yoto-age-btn.age-3-5 {
+    background: var(--yoto-blue);
+}
+
+.yoto-age-btn.age-6-8 {
+    background: var(--yoto-green);
+}
+
+.yoto-age-btn.age-9-plus {
+    background: var(--yoto-coral);
+}
+
+.yoto-age-label {
+    font-size: var(--font-size-base);
+    margin-bottom: var(--space-xs);
+}
+
+.yoto-age-range {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-bold);
+}
+
+/* Utility Classes */
+.yoto-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 var(--space-md);
+}
+
+.yoto-flex {
+    display: flex;
+}
+
+.yoto-grid {
+    display: grid;
+}
+
+.yoto-gap-sm { gap: var(--space-sm); }
+.yoto-gap-md { gap: var(--space-md); }
+.yoto-gap-lg { gap: var(--space-lg); }
+
+.yoto-rounded { border-radius: var(--radius-md); }
+.yoto-rounded-lg { border-radius: var(--radius-lg); }
+.yoto-rounded-full { border-radius: var(--radius-pill); }
+
+.yoto-shadow { box-shadow: var(--shadow-md); }
+.yoto-shadow-lg { box-shadow: var(--shadow-lg); }
+
+.yoto-text-center { text-align: center; }
+.yoto-text-white { color: var(--yoto-white); }
+.yoto-text-orange { color: var(--yoto-orange); }
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--yoto-gray-light);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--yoto-gray-medium);
+    border-radius: var(--radius-pill);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--yoto-gray-dark);
+}
