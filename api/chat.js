@@ -54,11 +54,21 @@ If you need clarification, return:
 }`;
 
 async function callClaudeAPI(messages, products, apiKey) {
+  // Sanitize text to prevent JSON parsing issues
+  const sanitizeText = (text) => {
+    if (!text) return '';
+    return text
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
+      .replace(/"/g, "'") // Replace double quotes with single quotes
+      .replace(/\\/g, '') // Remove backslashes
+      .substring(0, 200);
+  };
+
   const productContext = products.slice(0, 50).map(p => ({
     id: p.id,
-    title: p.title,
-    author: p.author,
-    blurb: p.blurb?.substring(0, 200) || '',
+    title: sanitizeText(p.title),
+    author: sanitizeText(p.author),
+    blurb: sanitizeText(p.blurb),
     price: p.price,
     ageRange: p.ageRange,
     runtime: p.runtime,
