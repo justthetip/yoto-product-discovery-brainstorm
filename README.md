@@ -1,6 +1,25 @@
-# Yoto Content Browser
+# Yoto Product Discovery Brainstorm
 
-Experiment with different ways to search and display content from the Yoto API.
+Exploring different UX approaches to content discovery and filtering, all using the Yoto brand design system.
+
+## 🎨 NEW: 5 Unique Layout Explorations
+
+**Try 5 completely different ways to discover Yoto content:**
+
+```bash
+./start.sh
+# Then open: http://localhost:8000/web/layouts-index.html
+```
+
+1. **Visual Category Grid** - Browse by illustrated categories with product previews
+2. **Split-Screen Explorer** - Desktop power-user interface with persistent filters
+3. **Swipeable Story Mode** - Tinder-style card interface (swipe to like/skip)
+4. **Smart Collections** - Netflix-style curated horizontal scrolling
+5. **Timeline Scroller** - Browse by time commitment (Quick → Epic)
+
+👉 **[View Layouts Documentation](web/LAYOUTS-README.md)**
+
+---
 
 ## Quick Start - Web Interface
 
