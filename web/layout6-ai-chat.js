@@ -1,0 +1,541 @@
+/**
+ * AI-Powered Product Discovery Chat Interface
+ * Optimized for Vercel Edge Functions and minimal API costs
+ */
+
+class YotoAIChat {
+    constructor() {
+        this.products = [];
+        this.conversationHistory = [];
+        this.currentResults = [];
+        this.isLoading = false;
+
+        // Cache for responses (reduce API costs)
+        this.responseCache = new Map();
+
+        this.init();
+    }
+
+    async init() {
+        await this.loadProducts();
+        this.setupEventListeners();
+        this.loadConversationHistory();
+    }
+
+    async loadProducts() {
+        try {
+            const response = await fetch('../data/yoto-content.json');
+            const data = await response.json();
+            this.products = data.data.products;
+            console.log(`Loaded ${this.products.length} products`);
+        } catch (error) {
+            console.error('Error loading products:', error);
+            this.showError('Failed to load product catalogue. Please refresh the page.');
+        }
+    }
+
+    setupEventListeners() {
+        const chatInput = document.getElementById('chatInput');
+        const sendButton = document.getElementById('sendButton');
+        const quickPrompts = document.querySelectorAll('.quick-prompt');
+
+        // Send message on button click
+        sendButton.addEventListener('click', () => this.sendMessage());
+
+        // Send message on Enter key
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.sendMessage();
+            }
+        });
+
+        // Quick prompt buttons
+        quickPrompts.forEach(button => {
+            button.addEventListener('click', () => {
+                const prompt = button.dataset.prompt;
+                chatInput.value = prompt;
+                this.sendMessage();
+            });
+        });
+    }
+
+    async sendMessage() {
+        const chatInput = document.getElementById('chatInput');
+        const message = chatInput.value.trim();
+
+        if (!message || this.isLoading) return;
+
+        // Add user message to UI
+        this.addMessageToUI('user', message);
+
+        // Clear input
+        chatInput.value = '';
+
+        // Add to conversation history
+        this.conversationHistory.push({
+            role: 'user',
+            content: message
+        });
+
+        // Show loading indicator
+        this.isLoading = true;
+        this.showLoading();
+
+        try {
+            // Check cache first
+            const cacheKey = this.getCacheKey(message);
+            if (this.responseCache.has(cacheKey)) {
+                console.log('Using cached response');
+                const cachedResponse = this.responseCache.get(cacheKey);
+                this.handleAIResponse(cachedResponse);
+                return;
+            }
+
+            // Pre-filter products on client side to reduce token usage
+            const preFilteredProducts = this.preFilterProducts(message);
+            console.log(`Pre-filtered to ${preFilteredProducts.length} products`);
+
+            // Call AI API
+            const response = await this.callAI(this.conversationHistory, preFilteredProducts);
+
+            // Cache the response
+            this.responseCache.set(cacheKey, response);
+
+            // Handle response
+            this.handleAIResponse(response);
+
+            // Save conversation history
+            this.saveConversationHistory();
+
+        } catch (error) {
+            console.error('Error sending message:', error);
+            this.showError(`Failed to get AI response: ${error.message}`);
+        } finally {
+            this.isLoading = false;
+            this.hideLoading();
+        }
+    }
+
+    getCacheKey(message) {
+        // Simple cache key based on message content
+        return message.toLowerCase().trim();
+    }
+
+    preFilterProducts(query) {
+        const queryLower = query.toLowerCase();
+
+        // Extract potential filters from the query
+        const filters = {
+            maxPrice: this.extractMaxPrice(queryLower),
+            ageRange: this.extractAgeRange(queryLower),
+            maxRuntime: this.extractMaxRuntime(queryLower),
+            contentTypes: this.extractContentTypes(queryLower),
+            keywords: this.extractKeywords(queryLower)
+        };
+
+        // Filter products
+        let filtered = this.products.filter(product => {
+            // Availability check (always prefer available)
+            if (product.availableForSale === false) return false;
+
+            // Price filter
+            if (filters.maxPrice && parseFloat(product.price) > filters.maxPrice) {
+                return false;
+            }
+
+            // Age filter
+            if (filters.ageRange && product.ageRange) {
+                const [minAge, maxAge] = product.ageRange;
+                if (minAge > filters.ageRange[1] || maxAge < filters.ageRange[0]) {
+                    return false;
+                }
+            }
+
+            // Runtime filter
+            if (filters.maxRuntime && product.runtime > filters.maxRuntime) {
+                return false;
+            }
+
+            // Content type filter
+            if (filters.contentTypes.length > 0) {
+                const hasMatchingType = filters.contentTypes.some(type =>
+                    product.contentType?.some(ct => ct.toLowerCase().includes(type))
+                );
+                if (!hasMatchingType) return false;
+            }
+
+            // Keyword matching (basic relevance)
+            if (filters.keywords.length > 0) {
+                const searchText = `${product.title} ${product.author} ${product.blurb || ''} ${product.contentType?.join(' ')}`.toLowerCase();
+                const hasKeyword = filters.keywords.some(keyword => searchText.includes(keyword));
+                if (!hasKeyword) return false;
+            }
+
+            return true;
+        });
+
+        // Sort by relevance (basic scoring)
+        filtered = this.scoreAndSortProducts(filtered, filters);
+
+        // Limit to top 100 to reduce token usage
+        return filtered.slice(0, 100);
+    }
+
+    extractMaxPrice(query) {
+        // Look for price mentions like "under £10", "less than 15", etc.
+        const patterns = [
+            /under\s*£?(\d+)/i,
+            /less\s*than\s*£?(\d+)/i,
+            /cheaper\s*than\s*£?(\d+)/i,
+            /below\s*£?(\d+)/i,
+            /max\s*£?(\d+)/i,
+            /maximum\s*£?(\d+)/i,
+        ];
+
+        for (const pattern of patterns) {
+            const match = query.match(pattern);
+            if (match) return parseFloat(match[1]);
+        }
+
+        return null;
+    }
+
+    extractAgeRange(query) {
+        // Look for age mentions
+        const patterns = [
+            /(\d+)[\s-]year[\s-]old/i,
+            /age\s*(\d+)/i,
+            /for\s*(\d+)/i,
+        ];
+
+        for (const pattern of patterns) {
+            const match = query.match(pattern);
+            if (match) {
+                const age = parseInt(match[1]);
+                // Return a range around the mentioned age
+                return [Math.max(0, age - 1), age + 1];
+            }
+        }
+
+        // Look for age group keywords
+        if (query.includes('toddler')) return [2, 4];
+        if (query.includes('preschool')) return [3, 5];
+        if (query.includes('baby') || query.includes('babies')) return [0, 2];
+
+        return null;
+    }
+
+    extractMaxRuntime(query) {
+        // Look for duration mentions
+        const patterns = [
+            /under\s*(\d+)\s*min/i,
+            /less\s*than\s*(\d+)\s*min/i,
+            /shorter\s*than\s*(\d+)\s*min/i,
+            /(\d+)\s*min\s*or\s*less/i,
+        ];
+
+        for (const pattern of patterns) {
+            const match = query.match(pattern);
+            if (match) return parseInt(match[1]) * 60; // Convert to seconds
+        }
+
+        // Look for hour mentions
+        const hourPattern = /under\s*(\d+)\s*hour/i;
+        const hourMatch = query.match(hourPattern);
+        if (hourMatch) return parseInt(hourMatch[1]) * 3600;
+
+        // Quick/short keywords
+        if (query.includes('quick') || query.includes('short')) return 30 * 60; // 30 minutes
+
+        return null;
+    }
+
+    extractContentTypes(query) {
+        const types = [];
+
+        // Common content types
+        const typeMap = {
+            'story': 'Stories',
+            'stories': 'Stories',
+            'music': 'Music',
+            'song': 'Music',
+            'songs': 'Music',
+            'education': 'Learning & Education',
+            'educational': 'Learning & Education',
+            'learning': 'Learning & Education',
+            'adventure': 'Action & Adventure',
+            'bedtime': 'Stories',
+            'sleep': 'Stories',
+            'lullaby': 'Music',
+        };
+
+        for (const [keyword, type] of Object.entries(typeMap)) {
+            if (query.includes(keyword) && !types.includes(type)) {
+                types.push(type);
+            }
+        }
+
+        return types;
+    }
+
+    extractKeywords(query) {
+        // Extract meaningful keywords (remove common words)
+        const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can', 'find', 'show', 'get', 'give', 'me', 'my', 'i', 'you', 'your', 'under', 'over', 'less', 'more', 'than', 'about'];
+
+        const words = query.toLowerCase()
+            .replace(/[^\w\s]/g, ' ')
+            .split(/\s+/)
+            .filter(word => word.length > 2 && !stopWords.includes(word));
+
+        return words;
+    }
+
+    scoreAndSortProducts(products, filters) {
+        return products.map(product => {
+            let score = 0;
+
+            // Boost if keywords match title
+            if (filters.keywords.length > 0) {
+                const titleLower = product.title.toLowerCase();
+                filters.keywords.forEach(keyword => {
+                    if (titleLower.includes(keyword)) score += 3;
+                });
+            }
+
+            // Boost if keywords match blurb
+            if (product.blurb && filters.keywords.length > 0) {
+                const blurbLower = product.blurb.toLowerCase();
+                filters.keywords.forEach(keyword => {
+                    if (blurbLower.includes(keyword)) score += 1;
+                });
+            }
+
+            // Boost new products
+            if (product.flag === 'New to Yoto') score += 2;
+
+            // Boost if within perfect age range
+            if (filters.ageRange && product.ageRange) {
+                const [targetMin, targetMax] = filters.ageRange;
+                const [prodMin, prodMax] = product.ageRange;
+                if (prodMin >= targetMin && prodMax <= targetMax) score += 5;
+            }
+
+            return { product, score };
+        })
+        .sort((a, b) => b.score - a.score)
+        .map(item => item.product);
+    }
+
+    async callAI(messages, products) {
+        // Use local API endpoint (works for both local dev and Vercel)
+        const apiUrl = '/api/chat';
+
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                messages: messages,
+                products: products,
+                provider: 'anthropic'
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'API request failed');
+        }
+
+        return await response.json();
+    }
+
+    handleAIResponse(response) {
+        // Add AI message to conversation history
+        this.conversationHistory.push({
+            role: 'assistant',
+            content: response.message
+        });
+
+        // Add AI message to UI
+        this.addMessageToUI('assistant', response.message);
+
+        // Display products if any
+        if (response.products && response.products.length > 0) {
+            this.displayProducts(response.products);
+        } else if (!response.needsMoreInfo) {
+            // No products found
+            document.getElementById('productResults').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🤷</div>
+                    <h3>No matching products</h3>
+                    <p>Try adjusting your search criteria</p>
+                </div>
+            `;
+        }
+    }
+
+    addMessageToUI(role, content) {
+        const messagesContainer = document.getElementById('chatMessages');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${role}`;
+
+        const avatar = role === 'user' ? '👤' : '🤖';
+
+        messageDiv.innerHTML = `
+            <div class="message-avatar">${avatar}</div>
+            <div class="message-content">${this.formatMessageContent(content)}</div>
+        `;
+
+        messagesContainer.appendChild(messageDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    formatMessageContent(content) {
+        // Convert markdown-style formatting
+        return content
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\n/g, '<br>');
+    }
+
+    showLoading() {
+        const messagesContainer = document.getElementById('chatMessages');
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'message assistant loading-message';
+        loadingDiv.id = 'loadingMessage';
+
+        loadingDiv.innerHTML = `
+            <div class="message-avatar">🤖</div>
+            <div class="loading">
+                <span>Thinking</span>
+                <div class="loading-dots">
+                    <div class="loading-dot"></div>
+                    <div class="loading-dot"></div>
+                    <div class="loading-dot"></div>
+                </div>
+            </div>
+        `;
+
+        messagesContainer.appendChild(loadingDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    hideLoading() {
+        const loadingMessage = document.getElementById('loadingMessage');
+        if (loadingMessage) {
+            loadingMessage.remove();
+        }
+    }
+
+    displayProducts(rankedProducts) {
+        const resultsContainer = document.getElementById('productResults');
+        const resultsCount = document.getElementById('resultsCount');
+
+        resultsCount.textContent = `${rankedProducts.length} product${rankedProducts.length !== 1 ? 's' : ''} found`;
+
+        // Get full product details
+        const productsWithDetails = rankedProducts.map(rp => {
+            const product = this.products.find(p => p.id === rp.id);
+            return {
+                ...product,
+                relevanceScore: rp.relevanceScore,
+                reasoning: rp.reasoning
+            };
+        }).filter(p => p.id); // Filter out any not found
+
+        // Sort by relevance score
+        productsWithDetails.sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0));
+
+        resultsContainer.innerHTML = productsWithDetails.map(product => this.createProductCard(product)).join('');
+
+        this.currentResults = productsWithDetails;
+    }
+
+    createProductCard(product) {
+        const imageUrl = product.images?.[0]?.url || product.imgSet?.sm?.src || '';
+        const runtime = product.runtime ? this.formatRuntime(product.runtime) : null;
+        const ageRange = product.ageRange ? `Ages ${product.ageRange[0]}-${product.ageRange[1]}` : null;
+
+        return `
+            <div class="product-card" onclick="window.yotoChat.showProductDetails('${product.id}')">
+                <div class="product-header">
+                    ${imageUrl ? `<img src="${imageUrl}" alt="${product.title}" class="product-image">` : ''}
+                    <div class="product-info">
+                        <div class="product-title">${product.title}</div>
+                        ${product.author ? `<div class="product-author">by ${product.author}</div>` : ''}
+                        <div class="product-meta">
+                            <span class="meta-tag price">£${product.price}</span>
+                            ${ageRange ? `<span class="meta-tag">${ageRange}</span>` : ''}
+                            ${runtime ? `<span class="meta-tag">${runtime}</span>` : ''}
+                            ${product.relevanceScore ? `<span class="relevance-score">${product.relevanceScore}% match</span>` : ''}
+                        </div>
+                    </div>
+                </div>
+                ${product.reasoning ? `<div class="product-reasoning">💡 ${product.reasoning}</div>` : ''}
+                ${product.blurb ? `<div class="product-blurb">${product.blurb.substring(0, 150)}${product.blurb.length > 150 ? '...' : ''}</div>` : ''}
+            </div>
+        `;
+    }
+
+    formatRuntime(seconds) {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+
+        if (hours > 0) {
+            return `${hours}h ${minutes}m`;
+        } else {
+            return `${minutes}m`;
+        }
+    }
+
+    showProductDetails(productId) {
+        const product = this.products.find(p => p.id === productId);
+        if (!product) return;
+
+        // For now, just log to console. Could implement a modal later.
+        console.log('Product details:', product);
+        alert(`Product: ${product.title}\n\nPrice: £${product.price}\n\n${product.blurb || 'No description available'}`);
+    }
+
+    showError(message) {
+        const messagesContainer = document.getElementById('chatMessages');
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message';
+        errorDiv.textContent = message;
+        messagesContainer.appendChild(errorDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    saveConversationHistory() {
+        try {
+            localStorage.setItem('yoto_conversation', JSON.stringify(this.conversationHistory));
+        } catch (error) {
+            console.error('Error saving conversation history:', error);
+        }
+    }
+
+    loadConversationHistory() {
+        try {
+            const saved = localStorage.getItem('yoto_conversation');
+            if (saved) {
+                this.conversationHistory = JSON.parse(saved);
+                // Optionally reload messages to UI
+            }
+        } catch (error) {
+            console.error('Error loading conversation history:', error);
+        }
+    }
+}
+
+// Initialize the chat when DOM is ready
+let yotoChat;
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        yotoChat = new YotoAIChat();
+        window.yotoChat = yotoChat; // Make available globally
+    });
+} else {
+    yotoChat = new YotoAIChat();
+    window.yotoChat = yotoChat;
+}

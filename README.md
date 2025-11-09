@@ -2,7 +2,35 @@
 
 Exploring different UX approaches to content discovery and filtering, all using the Yoto brand design system.
 
-## 🎨 NEW: 5 Unique Layout Explorations
+## 🤖 NEW: AI-Powered Product Discovery
+
+**Search with natural language using Claude AI:**
+
+```bash
+# Deploy to Vercel (free tier)
+vercel
+
+# Or test locally
+vercel dev
+# Visit: http://localhost:3000/ai-chat
+```
+
+**Try queries like:**
+- "Find calming bedtime stories for my 4-year-old under 20 minutes"
+- "Show me educational content about space for 7-year-olds"
+- "Adventure stories with animals, nothing scary"
+
+✨ Features:
+- **Semantic understanding** - Understands intent, not just keywords
+- **Conversational refinement** - "Make them shorter", "Cheaper options"
+- **Smart recommendations** - AI explains why products match
+- **Cost optimized** - Client-side pre-filtering saves 90% on tokens
+
+👉 **[Deployment Guide](DEPLOYMENT.md)** | Estimated cost: $15-30/month for 50 queries/day
+
+---
+
+## 🎨 5 Unique Layout Explorations
 
 **Try 5 completely different ways to discover Yoto content:**
 
@@ -16,6 +44,7 @@ Exploring different UX approaches to content discovery and filtering, all using 
 3. **Swipeable Story Mode** - Tinder-style card interface (swipe to like/skip)
 4. **Smart Collections** - Netflix-style curated horizontal scrolling
 5. **Timeline Scroller** - Browse by time commitment (Quick → Epic)
+6. **AI Chat Assistant** - Natural language search powered by Claude
 
 👉 **[View Layouts Documentation](web/LAYOUTS-README.md)**
 
