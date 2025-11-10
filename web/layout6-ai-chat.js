@@ -254,6 +254,52 @@ class YotoAIChat {
         return message.toLowerCase().trim();
     }
 
+    expandKeywordsSemantically(keywords) {
+        // Semantic mappings for keyword expansion
+        const semanticMap = {
+            'dinosaur': ['prehistoric', 'reptile', 'jurassic', 'fossil', 'tyrannosaurus', 't-rex', 'triceratops'],
+            'space': ['astronomy', 'planet', 'rocket', 'astronaut', 'galaxy', 'star', 'moon', 'solar'],
+            'princess': ['fairy tale', 'royal', 'castle', 'crown', 'queen'],
+            'pirate': ['treasure', 'ship', 'sea', 'adventure', 'ocean'],
+            'animal': ['creature', 'wildlife', 'nature', 'jungle', 'safari'],
+            'music': ['song', 'melody', 'rhythm', 'instrument', 'singing'],
+            'story': ['tale', 'narrative', 'adventure', 'journey'],
+            'science': ['experiment', 'discovery', 'learning', 'stem'],
+            'magic': ['wizard', 'spell', 'fantasy', 'enchanted', 'mystical']
+        };
+
+        const expanded = [...keywords];
+        keywords.forEach(keyword => {
+            // Check if this keyword has semantic expansions
+            for (const [baseWord, expansions] of Object.entries(semanticMap)) {
+                if (keyword.includes(baseWord) || baseWord.includes(keyword)) {
+                    expanded.push(...expansions);
+                }
+            }
+        });
+
+        // Remove duplicates
+        return [...new Set(expanded)];
+    }
+
+    expandContentTypes(contentTypes) {
+        // More flexible content type matching for expansion
+        const typeExpansions = {
+            'Stories': ['Adventures', 'Tales', 'Narratives', 'Learning & Education'],
+            'Music': ['Songs', 'Lullabies', 'Rhymes'],
+            'Learning & Education': ['Stories', 'Science', 'Discovery']
+        };
+
+        const expanded = [...contentTypes];
+        contentTypes.forEach(type => {
+            if (typeExpansions[type]) {
+                expanded.push(...typeExpansions[type]);
+            }
+        });
+
+        return [...new Set(expanded)];
+    }
+
     preFilterProducts(conversationHistory) {
         // Combine all user messages from conversation history to maintain context
         const allUserMessages = conversationHistory
@@ -305,29 +351,36 @@ class YotoAIChat {
                 }
             }
 
-            // Soft filters - product passes if it matches ANY of these
-            let hasSoftMatch = false;
+            // Strict AND logic: ALL specified filters must match
+            const filterChecks = [];
 
-            // Age filter (soft - boost relevance but don't exclude)
-            if (filters.ageRange && product.ageRange) {
-                const [minAge, maxAge] = product.ageRange;
-                // Check for overlap
-                if (minAge <= filters.ageRange[1] && maxAge >= filters.ageRange[0]) {
-                    hasSoftMatch = true;
+            // Age filter - must match if specified
+            if (filters.ageRange) {
+                if (product.ageRange) {
+                    const [minAge, maxAge] = product.ageRange;
+                    // Check for overlap
+                    const ageMatches = minAge <= filters.ageRange[1] && maxAge >= filters.ageRange[0];
+                    filterChecks.push(ageMatches);
+                } else {
+                    // No age range data on product - fail this filter
+                    filterChecks.push(false);
                 }
             }
 
-            // Content type filter (soft - boost relevance)
-            if (filters.contentTypes.length > 0 && product.contentType) {
-                const hasMatchingType = filters.contentTypes.some(type =>
-                    product.contentType.some(ct => ct.toLowerCase().includes(type.toLowerCase()))
-                );
-                if (hasMatchingType) {
-                    hasSoftMatch = true;
+            // Content type filter - must match if specified
+            if (filters.contentTypes.length > 0) {
+                if (product.contentType) {
+                    const hasMatchingType = filters.contentTypes.some(type =>
+                        product.contentType.some(ct => ct.toLowerCase().includes(type.toLowerCase()))
+                    );
+                    filterChecks.push(hasMatchingType);
+                } else {
+                    // No content type data - fail this filter
+                    filterChecks.push(false);
                 }
             }
 
-            // Keyword matching (soft - boost relevance)
+            // Keyword matching - must match if specified
             if (filters.keywords.length > 0) {
                 const searchText = `${product.title} ${product.author} ${product.blurb || ''} ${product.contentType?.join(' ')}`.toLowerCase();
                 const hasKeyword = filters.keywords.some(keyword => {
@@ -352,18 +405,129 @@ class YotoAIChat {
 
                     return false;
                 });
-                if (hasKeyword) {
-                    hasSoftMatch = true;
-                }
+                filterChecks.push(hasKeyword);
             }
 
-            // Include if we have a soft match OR if there are no soft filters (only hard ones)
-            const hasSoftFilters = filters.ageRange || filters.contentTypes.length > 0 || filters.keywords.length > 0;
-            return hasSoftMatch || !hasSoftFilters;
+            // Product must pass ALL filter checks
+            // If no soft filters specified, include all products (that passed hard constraints)
+            return filterChecks.length === 0 || filterChecks.every(check => check === true);
         });
 
         // Sort by relevance (basic scoring)
         filtered = this.scoreAndSortProducts(filtered, filters);
+
+        // Check if we need to expand the search semantically
+        if (filtered.length < 3 && (filters.keywords.length > 0 || filters.contentTypes.length > 0)) {
+            Logger.info('🔍 Few results found, expanding search semantically', {
+                originalCount: filtered.length,
+                threshold: 3,
+                willExpandKeywords: filters.keywords.length > 0,
+                willExpandContentTypes: filters.contentTypes.length > 0
+            });
+
+            // Expand keywords and content types semantically
+            const expandedFilters = {
+                ...filters,
+                keywords: filters.keywords.length > 0 ? this.expandKeywordsSemantically(filters.keywords) : filters.keywords,
+                contentTypes: filters.contentTypes.length > 0 ? this.expandContentTypes(filters.contentTypes) : filters.contentTypes
+            };
+
+            Logger.debug('Expanded filters', {
+                originalKeywords: filters.keywords,
+                expandedKeywords: expandedFilters.keywords,
+                originalContentTypes: filters.contentTypes,
+                expandedContentTypes: expandedFilters.contentTypes,
+                keywordsExpanded: expandedFilters.keywords.length - filters.keywords.length,
+                contentTypesExpanded: expandedFilters.contentTypes.length - filters.contentTypes.length
+            });
+
+            // Get IDs of products we already have
+            const existingIds = new Set(filtered.map(p => p.id));
+
+            // Run second pass with expanded filters (keep age strict)
+            const expandedResults = this.products.filter(product => {
+                // Skip products we already have
+                if (existingIds.has(product.id)) return false;
+
+                // Apply hard constraints (price, availability)
+                if (!product.availableForSale) return false;
+                if (filters.maxPrice && product.price && parseFloat(product.price) > filters.maxPrice) {
+                    return false;
+                }
+
+                const filterChecks = [];
+
+                // Age filter - KEEP STRICT (must match if specified)
+                if (filters.ageRange) {
+                    if (product.ageRange) {
+                        const [minAge, maxAge] = product.ageRange;
+                        const ageMatches = minAge <= filters.ageRange[1] && maxAge >= filters.ageRange[0];
+                        filterChecks.push(ageMatches);
+                    } else {
+                        filterChecks.push(false);
+                    }
+                }
+
+                // Content type filter - use EXPANDED types
+                if (expandedFilters.contentTypes.length > 0) {
+                    if (product.contentType) {
+                        const hasMatchingType = expandedFilters.contentTypes.some(type =>
+                            product.contentType.some(ct => ct.toLowerCase().includes(type.toLowerCase()))
+                        );
+                        filterChecks.push(hasMatchingType);
+                    } else {
+                        filterChecks.push(false);
+                    }
+                }
+
+                // Keyword matching - use EXPANDED keywords
+                if (expandedFilters.keywords.length > 0) {
+                    const searchText = `${product.title} ${product.author} ${product.blurb || ''} ${product.contentType?.join(' ')}`.toLowerCase();
+                    const hasKeyword = expandedFilters.keywords.some(keyword => {
+                        // Try exact match first
+                        if (searchText.includes(keyword)) return true;
+
+                        // Handle plurals
+                        if (keyword.endsWith('s')) {
+                            if (searchText.includes(keyword.slice(0, -1))) return true;
+                            if (keyword.endsWith('es') && searchText.includes(keyword.slice(0, -2))) return true;
+                        }
+
+                        // Try adding 's' or 'es'
+                        if (searchText.includes(keyword + 's')) return true;
+                        if (searchText.includes(keyword + 'es')) return true;
+
+                        // Handle ies/y transformations
+                        if (keyword.endsWith('ies') && searchText.includes(keyword.slice(0, -3) + 'y')) return true;
+                        if (searchText.includes(keyword.replace(/y$/, 'ies'))) return true;
+
+                        return false;
+                    });
+                    filterChecks.push(hasKeyword);
+                }
+
+                // Product must pass ALL filter checks
+                return filterChecks.length === 0 || filterChecks.every(check => check === true);
+            });
+
+            // Tag expanded results
+            expandedResults.forEach(product => {
+                product.isExpanded = true;
+            });
+
+            // Score and sort expanded results
+            const scoredExpandedResults = this.scoreAndSortProducts(expandedResults, expandedFilters);
+
+            Logger.success('✨ Semantic expansion completed', {
+                originalCount: filtered.length,
+                expandedCount: scoredExpandedResults.length,
+                totalCount: filtered.length + scoredExpandedResults.length,
+                expandedProductIds: scoredExpandedResults.slice(0, 5).map(p => p.id)
+            });
+
+            // Combine original (higher priority) + expanded results
+            filtered = [...filtered, ...scoredExpandedResults];
+        }
 
         // Limit to top 100 to reduce token usage
         return filtered.slice(0, 100);

@@ -34,6 +34,15 @@ When helping users:
 - Combine ALL user preferences from the entire conversation when ranking products
 - Never drop previous requirements when new ones are added
 
+**Handling Expanded Results**
+Some products may have an 'isExpanded' flag set to true. These are semantically related suggestions that were added when few exact matches were found:
+- Expanded results use related keywords (e.g., "prehistoric" for "dinosaur", "galaxy" for "space")
+- Expanded results may have broader content types (e.g., "Learning & Education" for "Stories")
+- Age range is ALWAYS kept strict - expanded results still match the requested age
+- When presenting expanded results, briefly explain they're "related suggestions" or "similar content"
+- Prioritize non-expanded results higher, but still include good expanded matches
+- Example: "I found 2 dinosaur stories, and also 3 related prehistoric-themed adventures you might enjoy"
+
 You will receive a pre-filtered set of products that match basic criteria. Your job is to:
 - Semantically understand what the user REALLY wants across the ENTIRE conversation
 - Rank products by relevance to ALL stated requirements
@@ -88,7 +97,8 @@ async function callClaudeAPI(messages, products, apiKey) {
     runtime: p.runtime,
     contentType: Array.isArray(p.contentType) ? p.contentType.map(ct => sanitizeText(ct)) : [],
     availableForSale: p.availableForSale,
-    flag: sanitizeText(p.flag || '')
+    flag: sanitizeText(p.flag || ''),
+    isExpanded: p.isExpanded || false
   }));
 
   const requestPayload = {
