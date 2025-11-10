@@ -614,11 +614,60 @@
             document.getElementById('productCount').textContent = currentProducts.length;
         }
 
-        // Override renderProducts for dashboard view
-        window.renderProducts = function(products) {
-            currentProducts = products;
-            renderProductsInView();
-        };
+        // Wait for chat to initialize, then override displayProducts
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.yotoChat) {
+                setupCustomDisplay();
+            } else {
+                const checkChat = setInterval(() => {
+                    if (window.yotoChat) {
+                        clearInterval(checkChat);
+                        setupCustomDisplay();
+                    }
+                }, 100);
+            }
+        });
+
+        function setupCustomDisplay() {
+            window.yotoChat.displayProducts = function(rankedProducts) {
+                // Get full product details
+                const productsWithDetails = rankedProducts.map(rp => {
+                    const product = this.products.find(p => p.id === rp.id);
+                    if (!product) return null;
+
+                    const imageUrl = product.images?.[0]?.url || product.imgSet?.sm?.src || '';
+                    const runtime = product.runtime ? formatRuntime(product.runtime) : '';
+                    const ageRange = product.ageRange ? `${product.ageRange[0]}-${product.ageRange[1]}` : '';
+
+                    return {
+                        ...product,
+                        imageUrl,
+                        runtime,
+                        ageRange,
+                        price: `£${product.price}`,
+                        relevanceScore: rp.relevanceScore,
+                        reasoning: rp.reasoning
+                    };
+                }).filter(p => p !== null);
+
+                // Sort by relevance
+                productsWithDetails.sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0));
+
+                // Update global products and render
+                currentProducts = productsWithDetails;
+                renderProductsInView();
+            };
+        }
+
+        function formatRuntime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            if (hours > 0) {
+                return `${hours}h ${minutes}m`;
+            } else {
+                return `${minutes}m`;
+            }
+        }
     </script>
 </body>
 </html>

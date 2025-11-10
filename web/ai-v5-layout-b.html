@@ -523,13 +523,65 @@
             counter.textContent = products.length === 0 ? 'No products' : `${currentIndex + 1} / ${products.length}`;
         }
 
-        // Override renderProducts for hero view
-        window.renderProducts = function(productsData) {
-            products = productsData;
-            currentIndex = 0;
-            showProduct(0);
-            closeChatPanel();
-        };
+        function formatRuntime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            if (hours > 0) {
+                return `${hours}h ${minutes}m`;
+            } else {
+                return `${minutes}m`;
+            }
+        }
+
+        // Wait for chat to initialize, then override displayProducts
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.yotoChat) {
+                setupCustomDisplay();
+            } else {
+                const checkChat = setInterval(() => {
+                    if (window.yotoChat) {
+                        clearInterval(checkChat);
+                        setupCustomDisplay();
+                    }
+                }, 100);
+            }
+        });
+
+        function setupCustomDisplay() {
+            window.yotoChat.displayProducts = function(rankedProducts) {
+                // Get full product details
+                const productsWithDetails = rankedProducts.map(rp => {
+                    const product = this.products.find(p => p.id === rp.id);
+                    if (!product) return null;
+
+                    const imageUrl = product.images?.[0]?.url || product.imgSet?.sm?.src || '';
+                    const runtime = product.runtime ? formatRuntime(product.runtime) : '';
+                    const ageRange = product.ageRange ? `Ages ${product.ageRange[0]}-${product.ageRange[1]}` : '';
+
+                    return {
+                        ...product,
+                        imageUrl,
+                        runtime,
+                        ageRange,
+                        price: `£${product.price}`,
+                        contentType: product.contentType,
+                        author: product.author,
+                        title: product.title,
+                        relevanceScore: rp.relevanceScore,
+                        reasoning: rp.reasoning
+                    };
+                }).filter(p => p !== null);
+
+                // Sort by relevance
+                productsWithDetails.sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0));
+
+                // Update global products and show first one
+                products = productsWithDetails;
+                currentIndex = 0;
+                showProduct(0);
+                closeChatPanel();
+            };
+        }
 
         // Keyboard navigation
         document.addEventListener('keydown', (e) => {

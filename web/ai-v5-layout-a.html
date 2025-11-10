@@ -464,37 +464,123 @@
     </script>
     <script src="/web/layout6-ai-chat.js"></script>
     <script>
-        // Override product rendering to be inline
-        const originalRenderProducts = window.renderProducts || function() {};
-        window.renderProducts = function(products) {
-            // Create assistant message with inline products
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message assistant';
-
-            const avatar = document.createElement('div');
-            avatar.className = 'message-avatar';
-            avatar.textContent = '🤖';
-
-            const contentWrapper = document.createElement('div');
-            contentWrapper.className = 'message-content-wrapper';
-
-            const content = document.createElement('div');
-            content.className = 'message-content';
-            content.textContent = `I found ${products.length} great options for you!`;
-
-            contentWrapper.appendChild(content);
-
-            if (products.length > 0) {
-                const productsEl = window.renderProductsInline(products);
-                contentWrapper.appendChild(productsEl);
+        // Wait for chat to initialize, then override displayProducts
+        document.addEventListener('DOMContentLoaded', () => {
+            // Override displayProducts method after chat is initialized
+            if (window.yotoChat) {
+                setupCustomDisplay();
+            } else {
+                // Wait for yotoChat to be available
+                const checkChat = setInterval(() => {
+                    if (window.yotoChat) {
+                        clearInterval(checkChat);
+                        setupCustomDisplay();
+                    }
+                }, 100);
             }
+        });
 
-            messageDiv.appendChild(avatar);
-            messageDiv.appendChild(contentWrapper);
+        function setupCustomDisplay() {
+            window.yotoChat.displayProducts = function(rankedProducts) {
+                const chatMessages = document.getElementById('chatMessages');
 
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        };
+                // Get full product details
+                const productsWithDetails = rankedProducts.map(rp => {
+                    const product = this.products.find(p => p.id === rp.id);
+                    return {
+                        ...product,
+                        relevanceScore: rp.relevanceScore,
+                        reasoning: rp.reasoning
+                    };
+                }).filter(p => p.id);
+
+                // Sort by relevance
+                productsWithDetails.sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0));
+
+                // Create assistant message with inline products
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message assistant';
+
+                const avatar = document.createElement('div');
+                avatar.className = 'message-avatar';
+                avatar.textContent = '🤖';
+
+                const contentWrapper = document.createElement('div');
+                contentWrapper.className = 'message-content-wrapper';
+
+                const content = document.createElement('div');
+                content.className = 'message-content';
+                content.textContent = `I found ${productsWithDetails.length} great options for you!`;
+
+                contentWrapper.appendChild(content);
+
+                if (productsWithDetails.length > 0) {
+                    const productsEl = renderProductsInline(productsWithDetails);
+                    contentWrapper.appendChild(productsEl);
+                }
+
+                messageDiv.appendChild(avatar);
+                messageDiv.appendChild(contentWrapper);
+
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            };
+        }
+
+        function renderProductsInline(products) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'product-recommendations';
+
+            const header = document.createElement('div');
+            header.className = 'recommendation-header';
+            header.textContent = `✨ Here are ${products.length} recommendations:`;
+            wrapper.appendChild(header);
+
+            products.forEach(product => {
+                const card = document.createElement('div');
+                card.className = 'inline-product-card';
+
+                const imageUrl = product.images?.[0]?.url || product.imgSet?.sm?.src || '';
+                const runtime = product.runtime ? formatRuntime(product.runtime) : '';
+                const ageRange = product.ageRange ? `Ages ${product.ageRange[0]}-${product.ageRange[1]}` : '';
+
+                card.innerHTML = `
+                    <div class="product-image-wrapper">
+                        ${imageUrl ? `<img src="${imageUrl}" alt="${product.title}" class="product-image">` : '<div class="product-image" style="background: #f5f5f5;"></div>'}
+                    </div>
+                    <div class="product-details">
+                        <div class="product-title">${product.title}</div>
+                        <div class="product-author">${product.author || 'Yoto'}</div>
+                        <div class="product-tags">
+                            <span class="product-tag price">£${product.price}</span>
+                            ${ageRange ? `<span class="product-tag">${ageRange}</span>` : ''}
+                            ${runtime ? `<span class="product-tag">${runtime}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+
+                if (product.reasoning) {
+                    const reasoning = document.createElement('div');
+                    reasoning.className = 'product-reasoning';
+                    reasoning.textContent = product.reasoning;
+                    card.appendChild(reasoning);
+                }
+
+                wrapper.appendChild(card);
+            });
+
+            return wrapper;
+        }
+
+        function formatRuntime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            if (hours > 0) {
+                return `${hours}h ${minutes}m`;
+            } else {
+                return `${minutes}m`;
+            }
+        }
     </script>
 </body>
 </html>
