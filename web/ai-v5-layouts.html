@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V5 Layout Variations - Yoto</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="manifest" href="/site.webmanifest">
+    <meta name="theme-color" content="#f45436">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f5f6f7;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            color: #1a1a1a;
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 16px;
+            color: #666;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 30px;
+            color: #f45436;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .back-link:hover {
+            color: #FF5525;
+        }
+
+        .layouts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .layout-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: all 0.3s;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .layout-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .layout-preview {
+            background: #fafafa;
+            padding: 30px;
+            border-bottom: 1px solid #e8e8e8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+        }
+
+        .preview-diagram {
+            width: 100%;
+            max-width: 200px;
+            height: 140px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .layout-card.horizontal .preview-diagram {
+            flex-direction: column;
+        }
+
+        .layout-card.vertical .preview-diagram {
+            flex-direction: row;
+        }
+
+        .layout-card.single .preview-diagram {
+            flex-direction: column;
+            max-width: 120px;
+        }
+
+        .preview-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 4px;
+            opacity: 0.3;
+            transition: all 0.3s;
+        }
+
+        .layout-card:hover .preview-box {
+            opacity: 0.6;
+        }
+
+        .preview-box.primary {
+            opacity: 0.7;
+            background: #f45436;
+        }
+
+        .layout-card:hover .preview-box.primary {
+            opacity: 0.9;
+        }
+
+        .layout-card.horizontal .preview-box:first-child {
+            flex: 0 0 45%;
+        }
+
+        .layout-card.horizontal .preview-box:last-child {
+            flex: 1;
+        }
+
+        .layout-card.vertical .preview-box:first-child {
+            flex: 1;
+        }
+
+        .layout-card.vertical .preview-box:last-child {
+            flex: 0 0 40%;
+        }
+
+        .layout-card.single .preview-box:first-child {
+            flex: 0 0 60%;
+        }
+
+        .layout-card.single .preview-box:last-child {
+            flex: 1;
+        }
+
+        .layout-info {
+            padding: 24px;
+        }
+
+        .layout-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+        }
+
+        .layout-subtitle {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 16px;
+        }
+
+        .layout-features {
+            list-style: none;
+            margin-bottom: 20px;
+        }
+
+        .layout-features li {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .layout-features li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #f45436;
+            font-weight: 600;
+        }
+
+        .view-button {
+            display: block;
+            width: 100%;
+            background: #f45436;
+            color: white;
+            text-align: center;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .view-button:hover {
+            background: #FF5525;
+        }
+
+        .original-link {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 40px;
+            border-top: 1px solid #e8e8e8;
+        }
+
+        .original-link h3 {
+            font-size: 16px;
+            color: #1a1a1a;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .original-link a {
+            display: inline-block;
+            background: white;
+            color: #f45436;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            border: 2px solid #f45436;
+            transition: all 0.2s;
+        }
+
+        .original-link a:hover {
+            background: #f45436;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/designs" class="back-link">← Back to All Designs</a>
+
+        <div class="header">
+            <h1>V5 Layout Variations</h1>
+            <p>Explore three different layout approaches for the AI chat interface, all based on the V5 Compact Professional design.</p>
+        </div>
+
+        <div class="layouts-grid">
+            <a href="/ai-v5-layout-a" class="layout-card horizontal">
+                <div class="layout-preview">
+                    <div class="preview-diagram">
+                        <div class="preview-box primary"></div>
+                        <div class="preview-box"></div>
+                    </div>
+                </div>
+                <div class="layout-info">
+                    <h2 class="layout-title">Layout A: Horizontal Split</h2>
+                    <p class="layout-subtitle">Chat top, products bottom</p>
+                    <ul class="layout-features">
+                        <li>Full-width chat interface on top</li>
+                        <li>Full-width product results below</li>
+                        <li>Great for ultrawide monitors</li>
+                        <li>No horizontal scrolling needed</li>
+                    </ul>
+                    <span class="view-button">View Layout →</span>
+                </div>
+            </a>
+
+            <a href="/ai-v5-layout-b" class="layout-card vertical">
+                <div class="layout-preview">
+                    <div class="preview-diagram">
+                        <div class="preview-box primary"></div>
+                        <div class="preview-box"></div>
+                    </div>
+                </div>
+                <div class="layout-info">
+                    <h2 class="layout-title">Layout B: Results-First</h2>
+                    <p class="layout-subtitle">Products left wide, chat right narrow</p>
+                    <ul class="layout-features">
+                        <li>Products are the primary focus</li>
+                        <li>Chat sidebar always visible</li>
+                        <li>Great for browsing while asking</li>
+                        <li>Flipped priority from original</li>
+                    </ul>
+                    <span class="view-button">View Layout →</span>
+                </div>
+            </a>
+
+            <a href="/ai-v5-layout-c" class="layout-card single">
+                <div class="layout-preview">
+                    <div class="preview-diagram">
+                        <div class="preview-box primary"></div>
+                        <div class="preview-box"></div>
+                    </div>
+                </div>
+                <div class="layout-info">
+                    <h2 class="layout-title">Layout C: Single Column</h2>
+                    <p class="layout-subtitle">Mobile-first vertical stack</p>
+                    <ul class="layout-features">
+                        <li>One thing at a time, vertical flow</li>
+                        <li>Centered, max-width 900px</li>
+                        <li>Perfect for narrow screens</li>
+                        <li>Natural scrolling experience</li>
+                    </ul>
+                    <span class="view-button">View Layout →</span>
+                </div>
+            </a>
+        </div>
+
+        <div class="original-link">
+            <h3>Original V5 Compact Professional</h3>
+            <a href="/ai-v5-compact">View Original Design →</a>
+        </div>
+    </div>
+</body>
+</html>

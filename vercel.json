@@ -62,6 +62,22 @@
       "destination": "/web/ai-v5-compact.html"
     },
     {
+      "source": "/ai-v5-layouts",
+      "destination": "/web/ai-v5-layouts.html"
+    },
+    {
+      "source": "/ai-v5-layout-a",
+      "destination": "/web/ai-v5-layout-a.html"
+    },
+    {
+      "source": "/ai-v5-layout-b",
+      "destination": "/web/ai-v5-layout-b.html"
+    },
+    {
+      "source": "/ai-v5-layout-c",
+      "destination": "/web/ai-v5-layout-c.html"
+    },
+    {
       "source": "/favicon.svg",
       "destination": "/public/favicon.svg"
     },
