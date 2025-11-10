@@ -75,37 +75,85 @@ class YotoAIChat {
     }
 
     setupEventListeners() {
+        Logger.info('Setting up event listeners...');
+
         const chatInput = document.getElementById('chatInput');
         const sendButton = document.getElementById('sendButton');
         const quickPrompts = document.querySelectorAll('.quick-prompt');
 
+        Logger.debug('DOM elements found', {
+            chatInput: !!chatInput,
+            sendButton: !!sendButton,
+            quickPromptsCount: quickPrompts.length
+        });
+
+        if (!chatInput) {
+            Logger.error('chatInput element not found!');
+            return;
+        }
+
+        if (!sendButton) {
+            Logger.error('sendButton element not found!');
+            return;
+        }
+
         // Send message on button click
-        sendButton.addEventListener('click', () => this.sendMessage());
+        sendButton.addEventListener('click', () => {
+            Logger.info('🔘 Send button CLICKED!', {
+                inputValue: chatInput.value,
+                isLoading: this.isLoading
+            });
+            this.sendMessage();
+        });
+        Logger.success('Send button click listener attached');
 
         // Send message on Enter key
         chatInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
+                Logger.info('⌨️ Enter key pressed in chat input', {
+                    inputValue: chatInput.value,
+                    isLoading: this.isLoading
+                });
                 e.preventDefault();
                 this.sendMessage();
             }
         });
+        Logger.success('Enter key listener attached');
 
         // Quick prompt buttons
-        quickPrompts.forEach(button => {
+        quickPrompts.forEach((button, index) => {
             button.addEventListener('click', () => {
                 const prompt = button.dataset.prompt;
+                Logger.info(`Quick prompt #${index} clicked`, { prompt });
                 chatInput.value = prompt;
                 this.sendMessage();
             });
         });
+        Logger.success(`${quickPrompts.length} quick prompt listeners attached`);
     }
 
     async sendMessage() {
+        Logger.info('🚀 sendMessage() method CALLED');
+
         const chatInput = document.getElementById('chatInput');
+        if (!chatInput) {
+            Logger.error('chatInput element not found in sendMessage()!');
+            return;
+        }
+
         const message = chatInput.value.trim();
 
+        Logger.debug('sendMessage() validation check', {
+            rawValue: chatInput.value,
+            trimmedMessage: message,
+            messageLength: message.length,
+            isEmpty: !message,
+            isLoading: this.isLoading,
+            willProceed: !(!message || this.isLoading)
+        });
+
         if (!message || this.isLoading) {
-            Logger.warning('Cannot send message', {
+            Logger.warning('❌ Cannot send message - validation failed', {
                 message,
                 isLoading: this.isLoading,
                 reason: !message ? 'Empty message' : 'Already loading'
@@ -113,7 +161,7 @@ class YotoAIChat {
             return;
         }
 
-        Logger.info('Sending user message', { message, conversationLength: this.conversationHistory.length });
+        Logger.info('✅ Sending user message', { message, conversationLength: this.conversationHistory.length });
 
         // Add user message to UI
         this.addMessageToUI('user', message);
@@ -645,10 +693,22 @@ class YotoAIChat {
     }
 
     displayProducts(rankedProducts) {
+        Logger.info('🎨 displayProducts() called', {
+            rankedProductsCount: rankedProducts.length,
+            products: rankedProducts.map(p => ({ id: p.id, score: p.relevanceScore }))
+        });
+
         const resultsContainer = document.getElementById('productResults');
         const resultsCount = document.getElementById('resultsCount');
 
-        resultsCount.textContent = `${rankedProducts.length} product${rankedProducts.length !== 1 ? 's' : ''} found`;
+        Logger.debug('Display containers', {
+            hasResultsContainer: !!resultsContainer,
+            hasResultsCount: !!resultsCount
+        });
+
+        if (resultsCount) {
+            resultsCount.textContent = `${rankedProducts.length} product${rankedProducts.length !== 1 ? 's' : ''} found`;
+        }
 
         // Get full product details
         const productsWithDetails = rankedProducts.map(rp => {
@@ -660,12 +720,23 @@ class YotoAIChat {
             };
         }).filter(p => p.id); // Filter out any not found
 
+        Logger.debug('Products with details', {
+            count: productsWithDetails.length,
+            titles: productsWithDetails.map(p => p.title)
+        });
+
         // Sort by relevance score
         productsWithDetails.sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0));
 
-        resultsContainer.innerHTML = productsWithDetails.map(product => this.createProductCard(product)).join('');
+        if (resultsContainer) {
+            resultsContainer.innerHTML = productsWithDetails.map(product => this.createProductCard(product)).join('');
+            Logger.success('Products rendered to resultsContainer');
+        } else {
+            Logger.warning('resultsContainer not found - products not rendered to default container');
+        }
 
         this.currentResults = productsWithDetails;
+        Logger.success('displayProducts() complete', { currentResultsCount: this.currentResults.length });
     }
 
     createProductCard(product) {
