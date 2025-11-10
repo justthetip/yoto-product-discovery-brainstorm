@@ -269,28 +269,77 @@ class YotoAIChat {
         return message.toLowerCase().trim();
     }
 
-    expandKeywordsSemantically(keywords) {
-        // Semantic mappings for keyword expansion
-        const semanticMap = {
+    expandKeywordsSemantically(keywords, level = 1) {
+        // Level 1: Direct synonyms and closely related terms
+        const level1Map = {
             'dinosaur': ['prehistoric', 'reptile', 'jurassic', 'fossil', 'tyrannosaurus', 't-rex', 'triceratops'],
             'space': ['astronomy', 'planet', 'rocket', 'astronaut', 'galaxy', 'star', 'moon', 'solar'],
-            'princess': ['fairy tale', 'royal', 'castle', 'crown', 'queen'],
-            'pirate': ['treasure', 'ship', 'sea', 'adventure', 'ocean'],
+            'princess': ['fairy tale', 'royal', 'castle', 'crown', 'queen', 'prince'],
+            'pirate': ['treasure', 'ship', 'sea', 'adventure', 'ocean', 'captain', 'sailor'],
             'animal': ['creature', 'wildlife', 'nature', 'jungle', 'safari'],
             'music': ['song', 'melody', 'rhythm', 'instrument', 'singing'],
             'story': ['tale', 'narrative', 'adventure', 'journey'],
             'science': ['experiment', 'discovery', 'learning', 'stem'],
-            'magic': ['wizard', 'spell', 'fantasy', 'enchanted', 'mystical']
+            'magic': ['wizard', 'spell', 'fantasy', 'enchanted', 'mystical'],
+            'witch': ['magic', 'spell', 'broom', 'cauldron', 'potion', 'halloween'],
+            'dragon': ['fantasy', 'mythical', 'fire', 'knight', 'castle'],
+            'unicorn': ['fantasy', 'magical', 'rainbow', 'fairy tale'],
+            'monster': ['creature', 'scary', 'beast', 'halloween'],
+            'superhero': ['hero', 'powers', 'cape', 'adventure', 'brave'],
+            'fairy': ['fantasy', 'magical', 'wings', 'fairy tale'],
+            'bedtime': ['sleep', 'night', 'calm', 'lullaby', 'soothing']
+        };
+
+        // Level 2: Broader category expansions
+        const level2Map = {
+            // Specific animals → broader animal categories
+            'badger': ['woodland', 'forest', 'animal', 'creature', 'nature'],
+            'fox': ['woodland', 'forest', 'animal', 'creature', 'nature'],
+            'hedgehog': ['woodland', 'forest', 'animal', 'creature', 'nature'],
+            'rabbit': ['woodland', 'forest', 'animal', 'creature', 'nature'],
+            'bear': ['woodland', 'forest', 'animal', 'creature', 'nature', 'wild'],
+            'lion': ['safari', 'jungle', 'animal', 'wild', 'africa'],
+            'elephant': ['safari', 'jungle', 'animal', 'wild', 'africa'],
+            'giraffe': ['safari', 'jungle', 'animal', 'wild', 'africa'],
+            'penguin': ['arctic', 'ice', 'animal', 'bird', 'cold'],
+            'shark': ['ocean', 'sea', 'fish', 'underwater', 'marine'],
+            'dolphin': ['ocean', 'sea', 'marine', 'underwater', 'aquatic'],
+            // Themes → broader concepts
+            'dinosaur': ['animal', 'creature', 'prehistoric', 'adventure'],
+            'space': ['science', 'discovery', 'adventure', 'learning'],
+            'princess': ['fantasy', 'adventure', 'story', 'fairy tale'],
+            'pirate': ['adventure', 'treasure', 'journey', 'story'],
+            'witch': ['fantasy', 'magic', 'story', 'adventure'],
+            'dragon': ['fantasy', 'adventure', 'story', 'mythical'],
+            'superhero': ['adventure', 'action', 'brave', 'hero']
+        };
+
+        // Level 3: Very broad categories (last resort before popularity)
+        const level3Map = {
+            'animal': ['nature', 'wildlife', 'adventure', 'discovery'],
+            'fantasy': ['story', 'adventure', 'imagination'],
+            'space': ['discovery', 'adventure', 'learning'],
+            'adventure': ['story', 'journey', 'exploration'],
+            'magic': ['fantasy', 'story', 'imagination'],
+            'science': ['learning', 'discovery', 'education']
         };
 
         const expanded = [...keywords];
+
+        // Apply appropriate level of expansion
+        const mapsToUse = [];
+        if (level >= 1) mapsToUse.push(level1Map);
+        if (level >= 2) mapsToUse.push(level2Map);
+        if (level >= 3) mapsToUse.push(level3Map);
+
         keywords.forEach(keyword => {
-            // Check if this keyword has semantic expansions
-            for (const [baseWord, expansions] of Object.entries(semanticMap)) {
-                if (keyword.includes(baseWord) || baseWord.includes(keyword)) {
-                    expanded.push(...expansions);
+            mapsToUse.forEach(semanticMap => {
+                for (const [baseWord, expansions] of Object.entries(semanticMap)) {
+                    if (keyword.includes(baseWord) || baseWord.includes(keyword)) {
+                        expanded.push(...expansions);
+                    }
                 }
-            }
+            });
         });
 
         // Remove duplicates
@@ -589,36 +638,72 @@ class YotoAIChat {
             filtered = [...filtered, ...scoredExpandedResults];
         }
 
-        // TIER 3: Keyword-Relaxed Search (if still < 3 results)
-        if (filtered.length < 3 && filters.ageRange) {
-            Logger.info('🔍 Tier 3: Keyword-relaxed search', {
+        // TIER 3: Broader Semantic Expansion (if still < 3 results)
+        // Example: "badgers" → "woodland creatures", "forest animals"
+        if (filtered.length < 3 && (filters.keywords.length > 0 || filters.contentTypes.length > 0)) {
+            Logger.info('🔍 Tier 3: Broader semantic expansion', {
                 currentCount: filtered.length,
-                keepingAgeStrict: true,
-                removingKeywordRequirement: true
+                originalKeywords: filters.keywords,
+                expansionLevel: 2
             });
 
             const existingIds = new Set(filtered.map(p => p.id));
+
+            // Expand to Level 2 (broader categories)
+            const tier3Filters = {
+                ...filters,
+                keywords: this.expandKeywordsSemantically(filters.keywords, 2),
+                contentTypes: this.expandContentTypes(filters.contentTypes)
+            };
+
+            Logger.debug('Tier 3 expanded filters', {
+                originalKeywords: filters.keywords,
+                expandedKeywords: tier3Filters.keywords,
+                expansionAdded: tier3Filters.keywords.length - filters.keywords.length
+            });
 
             const tier3Results = this.products.filter(product => {
                 if (existingIds.has(product.id)) return false;
                 if (!product.availableForSale) return false;
                 if (filters.maxPrice && product.price && parseFloat(product.price) > filters.maxPrice) return false;
 
-                // Keep age STRICT
-                if (product.ageRange) {
-                    const [minAge, maxAge] = product.ageRange;
-                    const ageMatches = minAge <= filters.ageRange[1] && maxAge >= filters.ageRange[0];
-                    if (!ageMatches) return false;
-                } else {
-                    return false;
+                const filterChecks = [];
+
+                // Age filter - KEEP STRICT
+                if (filters.ageRange) {
+                    if (product.ageRange) {
+                        const [minAge, maxAge] = product.ageRange;
+                        const ageMatches = minAge <= filters.ageRange[1] && maxAge >= filters.ageRange[0];
+                        filterChecks.push(ageMatches);
+                    } else {
+                        filterChecks.push(false);
+                    }
                 }
 
-                // Accept any content type or general theme match
-                return true;
+                // Content type - use expanded
+                if (tier3Filters.contentTypes.length > 0) {
+                    if (product.contentType) {
+                        const hasMatchingType = tier3Filters.contentTypes.some(type =>
+                            product.contentType.some(ct => ct.toLowerCase().includes(type.toLowerCase()))
+                        );
+                        filterChecks.push(hasMatchingType);
+                    } else {
+                        filterChecks.push(false);
+                    }
+                }
+
+                // Keyword - use Level 2 expanded keywords
+                if (tier3Filters.keywords.length > 0) {
+                    const searchText = `${product.title} ${product.author} ${product.blurb || ''} ${product.contentType?.join(' ')}`.toLowerCase();
+                    const hasKeyword = tier3Filters.keywords.some(keyword => searchText.includes(keyword));
+                    filterChecks.push(hasKeyword);
+                }
+
+                return filterChecks.length === 0 || filterChecks.every(check => check === true);
             });
 
             tier3Results.forEach(p => p.tierUsed = 3);
-            const scoredTier3 = this.scoreAndSortProducts(tier3Results, { ...filters, keywords: [] });
+            const scoredTier3 = this.scoreAndSortProducts(tier3Results, tier3Filters);
 
             Logger.success('✨ Tier 3 completed', {
                 tier3Count: scoredTier3.length,
@@ -628,39 +713,72 @@ class YotoAIChat {
             filtered = [...filtered, ...scoredTier3];
         }
 
-        // TIER 4: Age-Flexible Search (if still < 3 results)
-        if (filtered.length < 3 && filters.ageRange) {
-            Logger.info('🔍 Tier 4: Age-flexible search', {
+        // TIER 4: Very Broad Semantic Expansion (if still < 3 results)
+        // Example: "badgers" → "nature", "wildlife", "adventure"
+        if (filtered.length < 3 && (filters.keywords.length > 0 || filters.contentTypes.length > 0)) {
+            Logger.info('🔍 Tier 4: Very broad semantic expansion', {
                 currentCount: filtered.length,
-                originalAgeRange: `[${filters.ageRange[0]}, ${filters.ageRange[1]}]`,
-                expandedAgeRange: `[${filters.ageRange[0] - 2}, ${filters.ageRange[1] + 2}]`
+                originalKeywords: filters.keywords,
+                expansionLevel: 3
             });
 
             const existingIds = new Set(filtered.map(p => p.id));
-            const flexibleAgeRange = [
-                Math.max(0, filters.ageRange[0] - 2),
-                filters.ageRange[1] + 2
-            ];
+
+            // Expand to Level 3 (very broad categories)
+            const tier4Filters = {
+                ...filters,
+                keywords: this.expandKeywordsSemantically(filters.keywords, 3),
+                contentTypes: this.expandContentTypes(filters.contentTypes)
+            };
+
+            Logger.debug('Tier 4 expanded filters', {
+                originalKeywords: filters.keywords,
+                expandedKeywords: tier4Filters.keywords,
+                expansionAdded: tier4Filters.keywords.length - filters.keywords.length
+            });
 
             const tier4Results = this.products.filter(product => {
                 if (existingIds.has(product.id)) return false;
                 if (!product.availableForSale) return false;
                 if (filters.maxPrice && product.price && parseFloat(product.price) > filters.maxPrice) return false;
 
-                // Expanded age range (±2 years)
-                if (product.ageRange) {
-                    const [minAge, maxAge] = product.ageRange;
-                    const ageMatches = minAge <= flexibleAgeRange[1] && maxAge >= flexibleAgeRange[0];
-                    if (!ageMatches) return false;
-                } else {
-                    return false;
+                const filterChecks = [];
+
+                // Age filter - KEEP STRICT
+                if (filters.ageRange) {
+                    if (product.ageRange) {
+                        const [minAge, maxAge] = product.ageRange;
+                        const ageMatches = minAge <= filters.ageRange[1] && maxAge >= filters.ageRange[0];
+                        filterChecks.push(ageMatches);
+                    } else {
+                        filterChecks.push(false);
+                    }
                 }
 
-                return true;
+                // Content type - use expanded
+                if (tier4Filters.contentTypes.length > 0) {
+                    if (product.contentType) {
+                        const hasMatchingType = tier4Filters.contentTypes.some(type =>
+                            product.contentType.some(ct => ct.toLowerCase().includes(type.toLowerCase()))
+                        );
+                        filterChecks.push(hasMatchingType);
+                    } else {
+                        filterChecks.push(false);
+                    }
+                }
+
+                // Keyword - use Level 3 expanded keywords
+                if (tier4Filters.keywords.length > 0) {
+                    const searchText = `${product.title} ${product.author} ${product.blurb || ''} ${product.contentType?.join(' ')}`.toLowerCase();
+                    const hasKeyword = tier4Filters.keywords.some(keyword => searchText.includes(keyword));
+                    filterChecks.push(hasKeyword);
+                }
+
+                return filterChecks.length === 0 || filterChecks.every(check => check === true);
             });
 
             tier4Results.forEach(p => p.tierUsed = 4);
-            const scoredTier4 = this.scoreAndSortProducts(tier4Results, filters);
+            const scoredTier4 = this.scoreAndSortProducts(tier4Results, tier4Filters);
 
             Logger.success('✨ Tier 4 completed', {
                 tier4Count: scoredTier4.length,
