@@ -193,7 +193,7 @@ class YotoAIChat {
 
             // Pre-filter products on client side to reduce token usage
             const filterStartTime = performance.now();
-            const preFilteredProducts = this.preFilterProducts(message);
+            const preFilteredProducts = this.preFilterProducts(this.conversationHistory);
             const filterTime = performance.now() - filterStartTime;
 
             Logger.success(`Pre-filtered products in ${filterTime.toFixed(2)}ms`, {
@@ -254,10 +254,23 @@ class YotoAIChat {
         return message.toLowerCase().trim();
     }
 
-    preFilterProducts(query) {
-        const queryLower = query.toLowerCase();
+    preFilterProducts(conversationHistory) {
+        // Combine all user messages from conversation history to maintain context
+        const allUserMessages = conversationHistory
+            .filter(msg => msg.role === 'user')
+            .map(msg => msg.content)
+            .join(' ');
 
-        // Extract potential filters from the query
+        const queryLower = allUserMessages.toLowerCase();
+
+        Logger.debug('Pre-filtering with full conversation context', {
+            messagesCount: conversationHistory.length,
+            userMessagesCount: conversationHistory.filter(msg => msg.role === 'user').length,
+            combinedQuery: allUserMessages.substring(0, 200),
+            queryLength: allUserMessages.length
+        });
+
+        // Extract potential filters from the combined conversation
         const filters = {
             maxPrice: this.extractMaxPrice(queryLower),
             ageRange: this.extractAgeRange(queryLower),
