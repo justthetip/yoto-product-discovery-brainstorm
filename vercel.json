@@ -38,6 +38,30 @@
       "destination": "/web/layout6-ai-chat.html"
     },
     {
+      "source": "/designs",
+      "destination": "/web/ai-design-explorer.html"
+    },
+    {
+      "source": "/ai-v1-elevated",
+      "destination": "/web/ai-v1-elevated.html"
+    },
+    {
+      "source": "/ai-v2-soft",
+      "destination": "/web/ai-v2-soft.html"
+    },
+    {
+      "source": "/ai-v3-bold",
+      "destination": "/web/ai-v3-bold.html"
+    },
+    {
+      "source": "/ai-v4-minimal",
+      "destination": "/web/ai-v4-minimal.html"
+    },
+    {
+      "source": "/ai-v5-compact",
+      "destination": "/web/ai-v5-compact.html"
+    },
+    {
       "source": "/favicon.svg",
       "destination": "/public/favicon.svg"
     },

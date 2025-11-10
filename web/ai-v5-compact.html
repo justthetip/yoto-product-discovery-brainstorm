@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Search V5: Compact Professional - Yoto</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="manifest" href="/site.webmanifest">
+    <meta name="theme-color" content="#FF6B35">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f5f6f7;
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .design-label {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            z-index: 1000;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 16px;
+            height: calc(100vh - 32px);
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr auto;
+            }
+        }
+
+        .chat-panel {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e8e8e8;
+            background: #fafafa;
+        }
+
+        .chat-header h2 {
+            font-size: 16px;
+            margin-bottom: 2px;
+            color: #1a1a1a;
+            font-weight: 600;
+        }
+
+        .chat-header p {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message {
+            display: flex;
+            gap: 10px;
+            max-width: 80%;
+            animation: slideIn 0.2s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #e8e8e8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-avatar {
+            background: #FF6B35;
+        }
+
+        .message-content {
+            background: #f5f5f5;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .message.user .message-content {
+            background: #FF6B35;
+            color: white;
+        }
+
+        .chat-input-area {
+            padding: 14px 16px;
+            border-top: 1px solid #e8e8e8;
+            background: #fafafa;
+        }
+
+        .quick-prompts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .quick-prompt {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-prompt:hover {
+            background: #FF6B35;
+            color: white;
+            border-color: #FF6B35;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid #ddd;
+            border-radius: 16px;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .chat-input:focus {
+            border-color: #FF6B35;
+        }
+
+        .send-button {
+            background: #FF6B35;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .send-button:hover:not(:disabled) {
+            background: #FF5525;
+        }
+
+        .send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .results-panel {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .results-header {
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e8e8e8;
+        }
+
+        .results-header h3 {
+            font-size: 15px;
+            color: #1a1a1a;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .results-count {
+            font-size: 11px;
+            color: #888;
+        }
+
+        .product-card {
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 12px;
+            transition: all 0.2s;
+            cursor: pointer;
+            background: #fafafa;
+        }
+
+        .product-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border-color: #FF6B35;
+        }
+
+        .product-header {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .product-image {
+            width: 60px;
+            height: 60px;
+            border-radius: 6px;
+            object-fit: cover;
+            background: white;
+            border: 1px solid #e8e8e8;
+        }
+
+        .product-info {
+            flex: 1;
+        }
+
+        .product-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+
+        .product-author {
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 6px;
+        }
+
+        .product-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            font-size: 10px;
+        }
+
+        .meta-tag {
+            background: white;
+            padding: 3px 8px;
+            border-radius: 8px;
+            color: #666;
+            font-weight: 500;
+            border: 1px solid #e8e8e8;
+        }
+
+        .meta-tag.price {
+            background: #FF6B35;
+            color: white;
+            border-color: #FF6B35;
+        }
+
+        .product-reasoning {
+            background: white;
+            border-left: 2px solid #FF6B35;
+            padding: 8px 10px;
+            margin-top: 10px;
+            font-size: 11px;
+            color: #666;
+            border-radius: 4px;
+            line-height: 1.5;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            background: #f5f5f5;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .loading-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .loading-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: #FF6B35;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .loading-dot:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: #ccc;
+        }
+
+        .empty-state-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+        }
+
+        .empty-state h3 {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .empty-state p {
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .relevance-score {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-size: 9px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="design-label">V5: Compact Pro</div>
+
+    <div class="container">
+        <div class="chat-panel">
+            <div class="chat-header">
+                <h2>🤖 AI Shopping Assistant</h2>
+                <p>Ask me anything about Yoto products!</p>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="message assistant">
+                    <div class="message-avatar">🤖</div>
+                    <div class="message-content">
+                        Hi! I'm your Yoto shopping assistant. I can help you find the perfect audio content for children. Try asking me something like:
+                        <br><br>
+                        • "Find bedtime stories for my 4-year-old under 20 minutes"<br>
+                        • "Educational content about space for 7-year-olds"<br>
+                        • "Adventure stories with animals, nothing scary"
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input-area">
+                <div class="quick-prompts" id="quickPrompts">
+                    <button class="quick-prompt" data-prompt="Find calming bedtime stories for a 3-year-old">🌙 Bedtime</button>
+                    <button class="quick-prompt" data-prompt="Show me educational content about dinosaurs">🦕 Educational</button>
+                    <button class="quick-prompt" data-prompt="Adventure stories under 30 minutes">⚡ Adventures</button>
+                    <button class="quick-prompt" data-prompt="Music for toddlers">🎵 Music</button>
+                </div>
+                <div class="input-wrapper">
+                    <input
+                        type="text"
+                        class="chat-input"
+                        id="chatInput"
+                        placeholder="Ask me anything..."
+                        autocomplete="off"
+                    >
+                    <button class="send-button" id="sendButton">Send</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="results-panel">
+            <div class="results-header">
+                <h3>📦 Recommended Products</h3>
+                <div class="results-count" id="resultsCount">Ask the AI to see recommendations</div>
+            </div>
+            <div id="productResults">
+                <div class="empty-state">
+                    <div class="empty-state-icon">🔍</div>
+                    <h3>No products yet</h3>
+                    <p>Start chatting to get recommendations!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/web/layout6-ai-chat.js"></script>
+</body>
+</html>

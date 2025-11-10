@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat Design Explorations - Yoto</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="manifest" href="/site.webmanifest">
+    <meta name="theme-color" content="#FF6B35">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 50px;
+        }
+
+        .header h1 {
+            font-size: 48px;
+            margin-bottom: 16px;
+            font-weight: 800;
+        }
+
+        .header p {
+            font-size: 20px;
+            opacity: 0.9;
+            margin-bottom: 12px;
+        }
+
+        .header .subtitle {
+            font-size: 16px;
+            opacity: 0.8;
+        }
+
+        .designs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .design-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .design-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .design-preview {
+            height: 250px;
+            background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 80px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .design-card:nth-child(1) .design-preview {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+
+        .design-card:nth-child(2) .design-preview {
+            background: linear-gradient(135deg, #fff5f2 0%, #ffe8e0 100%);
+        }
+
+        .design-card:nth-child(3) .design-preview {
+            background: linear-gradient(135deg, #FF6B35 0%, #FFB366 100%);
+        }
+
+        .design-card:nth-child(4) .design-preview {
+            background: #fefefe;
+        }
+
+        .design-card:nth-child(5) .design-preview {
+            background: #f5f6f7;
+        }
+
+        .preview-label {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .design-info {
+            padding: 28px;
+        }
+
+        .design-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 12px;
+        }
+
+        .design-description {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .design-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .feature-tag {
+            background: #f5f5f5;
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .view-button {
+            display: block;
+            width: 100%;
+            background: linear-gradient(135deg, #FF6B35 0%, #FF8E53 100%);
+            color: white;
+            padding: 14px;
+            border-radius: 12px;
+            text-align: center;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 15px;
+            transition: all 0.2s;
+        }
+
+        .view-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+        }
+
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 60px;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+        }
+
+        .footer h3 {
+            font-size: 20px;
+            margin-bottom: 12px;
+        }
+
+        .footer p {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+        }
+
+        .footer-link {
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border: 2px solid white;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .footer-link:hover {
+            background: white;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 AI Chat Design Explorations</h1>
+            <p>5 Different Design Approaches for Yoto's AI-Powered Product Search</p>
+            <p class="subtitle">Inspired by Yoto's existing design language • Click any design to explore</p>
+        </div>
+
+        <div class="designs-grid">
+            <div class="design-card" onclick="window.location.href='/ai-v1-elevated'">
+                <div class="design-preview">
+                    <span class="preview-label">Version 1</span>
+                    💎
+                </div>
+                <div class="design-info">
+                    <div class="design-title">Elevated Cards</div>
+                    <div class="design-description">
+                        Clean, professional design with prominent shadows and elevated card elements. Inspired by modern e-commerce product cards.
+                    </div>
+                    <div class="design-features">
+                        <span class="feature-tag">Strong shadows</span>
+                        <span class="feature-tag">High contrast</span>
+                        <span class="feature-tag">Premium feel</span>
+                        <span class="feature-tag">White background</span>
+                    </div>
+                    <a href="/ai-v1-elevated" class="view-button">View Design →</a>
+                </div>
+            </div>
+
+            <div class="design-card" onclick="window.location.href='/ai-v2-soft'">
+                <div class="design-preview">
+                    <span class="preview-label">Version 2</span>
+                    🌸
+                </div>
+                <div class="design-info">
+                    <div class="design-title">Soft Rounded</div>
+                    <div class="design-description">
+                        Gentle, approachable design with large border radii and soft gradients. Perfect for a friendly, family-focused brand.
+                    </div>
+                    <div class="design-features">
+                        <span class="feature-tag">Rounded corners</span>
+                        <span class="feature-tag">Soft gradients</span>
+                        <span class="feature-tag">Warm palette</span>
+                        <span class="feature-tag">Playful</span>
+                    </div>
+                    <a href="/ai-v2-soft" class="view-button">View Design →</a>
+                </div>
+            </div>
+
+            <div class="design-card" onclick="window.location.href='/ai-v3-bold'">
+                <div class="design-preview">
+                    <span class="preview-label">Version 3</span>
+                    ⚡
+                </div>
+                <div class="design-info">
+                    <div class="design-title">Bold & Playful</div>
+                    <div class="design-description">
+                        Eye-catching design with large typography, strong borders, and 3D effects. Makes a statement with bold colors and shadows.
+                    </div>
+                    <div class="design-features">
+                        <span class="feature-tag">Bold typography</span>
+                        <span class="feature-tag">3D shadows</span>
+                        <span class="feature-tag">High energy</span>
+                        <span class="feature-tag">Vibrant</span>
+                    </div>
+                    <a href="/ai-v3-bold" class="view-button">View Design →</a>
+                </div>
+            </div>
+
+            <div class="design-card" onclick="window.location.href='/ai-v4-minimal'">
+                <div class="design-preview">
+                    <span class="preview-label">Version 4</span>
+                    ○
+                </div>
+                <div class="design-info">
+                    <div class="design-title">Minimal Clean</div>
+                    <div class="design-description">
+                        Sophisticated, minimal design focusing on white space and subtle outlines. Emphasizes content over decoration.
+                    </div>
+                    <div class="design-features">
+                        <span class="feature-tag">Minimal</span>
+                        <span class="feature-tag">Lots of space</span>
+                        <span class="feature-tag">Subtle accents</span>
+                        <span class="feature-tag">Refined</span>
+                    </div>
+                    <a href="/ai-v4-minimal" class="view-button">View Design →</a>
+                </div>
+            </div>
+
+            <div class="design-card" onclick="window.location.href='/ai-v5-compact'">
+                <div class="design-preview">
+                    <span class="preview-label">Version 5</span>
+                    📊
+                </div>
+                <div class="design-info">
+                    <div class="design-title">Compact Professional</div>
+                    <div class="design-description">
+                        Efficient, compact design maximizing screen real estate. Perfect for power users who want to see more products at once.
+                    </div>
+                    <div class="design-features">
+                        <span class="feature-tag">Space efficient</span>
+                        <span class="feature-tag">Professional</span>
+                        <span class="feature-tag">High density</span>
+                        <span class="feature-tag">Practical</span>
+                    </div>
+                    <a href="/ai-v5-compact" class="view-button">View Design →</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <h3>Need to compare designs?</h3>
+            <p>Open multiple tabs to compare designs side-by-side</p>
+            <div class="footer-links">
+                <a href="/ai-chat" class="footer-link">Original Design</a>
+                <a href="/" class="footer-link">← Back to Home</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

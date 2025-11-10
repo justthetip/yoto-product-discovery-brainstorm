@@ -1,6 +1,31 @@
 # Quick Start Guide
 
-## 5-Second Start
+## 🤖 AI Search (NEW!)
+
+**Get AI-powered search in 5 minutes:**
+
+```bash
+# 1. Get API key from console.anthropic.com
+# 2. Create .env file
+echo "ANTHROPIC_API_KEY=sk-ant-your-key-here" > .env
+
+# 3. Start local server
+vercel dev
+
+# 4. Visit: http://localhost:3000/ai-chat
+```
+
+**Try queries like:**
+- "Find calming bedtime stories for my 4-year-old under 20 minutes"
+- "Show me educational content about space"
+
+👉 **Full AI setup guide**: [AI-SEARCH-README.md](AI-SEARCH-README.md)
+
+---
+
+## 📊 Command Line Tools
+
+### 5-Second Start
 
 ```bash
 # Fetch latest data
