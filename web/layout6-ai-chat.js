@@ -269,7 +269,17 @@ class YotoAIChat {
             // Keyword matching (soft - boost relevance)
             if (filters.keywords.length > 0) {
                 const searchText = `${product.title} ${product.author} ${product.blurb || ''} ${product.contentType?.join(' ')}`.toLowerCase();
-                const hasKeyword = filters.keywords.some(keyword => searchText.includes(keyword));
+                const hasKeyword = filters.keywords.some(keyword => {
+                    // Try exact match first
+                    if (searchText.includes(keyword)) return true;
+                    // Try singular/plural variations
+                    if (keyword.endsWith('s') && searchText.includes(keyword.slice(0, -1))) return true;
+                    if (searchText.includes(keyword + 's')) return true;
+                    // Try with "es" ending (stories/story, etc)
+                    if (keyword.endsWith('ies') && searchText.includes(keyword.slice(0, -3) + 'y')) return true;
+                    if (searchText.includes(keyword.replace(/y$/, 'ies'))) return true;
+                    return false;
+                });
                 if (hasKeyword) {
                     hasSoftMatch = true;
                 }
@@ -397,6 +407,18 @@ class YotoAIChat {
     }
 
     scoreAndSortProducts(products, filters) {
+        // Helper function for fuzzy keyword matching
+        const matchesKeyword = (text, keyword) => {
+            if (text.includes(keyword)) return true;
+            // Try singular/plural variations
+            if (keyword.endsWith('s') && text.includes(keyword.slice(0, -1))) return true;
+            if (text.includes(keyword + 's')) return true;
+            // Try with "es" ending (stories/story, etc)
+            if (keyword.endsWith('ies') && text.includes(keyword.slice(0, -3) + 'y')) return true;
+            if (text.includes(keyword.replace(/y$/, 'ies'))) return true;
+            return false;
+        };
+
         return products.map(product => {
             let score = 0;
 
@@ -404,7 +426,7 @@ class YotoAIChat {
             if (filters.keywords.length > 0) {
                 const titleLower = product.title.toLowerCase();
                 filters.keywords.forEach(keyword => {
-                    if (titleLower.includes(keyword)) score += 3;
+                    if (matchesKeyword(titleLower, keyword)) score += 3;
                 });
             }
 
@@ -412,7 +434,7 @@ class YotoAIChat {
             if (product.blurb && filters.keywords.length > 0) {
                 const blurbLower = product.blurb.toLowerCase();
                 filters.keywords.forEach(keyword => {
-                    if (blurbLower.includes(keyword)) score += 1;
+                    if (matchesKeyword(blurbLower, keyword)) score += 1;
                 });
             }
 
