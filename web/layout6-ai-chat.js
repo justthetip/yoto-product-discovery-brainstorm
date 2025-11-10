@@ -316,22 +316,20 @@ class YotoAIChat {
     }
 
     preFilterProducts(conversationHistory) {
-        // Combine all user messages from conversation history to maintain context
-        const allUserMessages = conversationHistory
-            .filter(msg => msg.role === 'user')
-            .map(msg => msg.content)
-            .join(' ');
+        // Use only the most recent user message for filtering to avoid keyword accumulation
+        const userMessages = conversationHistory.filter(msg => msg.role === 'user');
+        const latestUserMessage = userMessages.length > 0 ? userMessages[userMessages.length - 1].content : '';
 
-        const queryLower = allUserMessages.toLowerCase();
+        const queryLower = latestUserMessage.toLowerCase();
 
-        Logger.debug('Pre-filtering with full conversation context', {
+        Logger.debug('Pre-filtering with latest user query', {
             messagesCount: conversationHistory.length,
-            userMessagesCount: conversationHistory.filter(msg => msg.role === 'user').length,
-            combinedQuery: allUserMessages.substring(0, 200),
-            queryLength: allUserMessages.length
+            userMessagesCount: userMessages.length,
+            latestQuery: latestUserMessage.substring(0, 200),
+            queryLength: latestUserMessage.length
         });
 
-        // Extract potential filters from the combined conversation
+        // Extract potential filters from the latest query only
         const filters = {
             maxPrice: this.extractMaxPrice(queryLower),
             ageRange: this.extractAgeRange(queryLower),
@@ -438,6 +436,9 @@ class YotoAIChat {
 
         // Sort by relevance (basic scoring)
         filtered = this.scoreAndSortProducts(filtered, filters);
+
+        // Tag Tier 1 results
+        filtered.forEach(p => p.tierUsed = 1);
 
         Logger.info('📊 Initial filter results', {
             totalProducts: this.products.length,
@@ -568,9 +569,10 @@ class YotoAIChat {
                 return filterChecks.length === 0 || filterChecks.every(check => check === true);
             });
 
-            // Tag expanded results
+            // Tag expanded results as Tier 2
             expandedResults.forEach(product => {
                 product.isExpanded = true;
+                product.tierUsed = 2;
             });
 
             // Score and sort expanded results
@@ -585,6 +587,138 @@ class YotoAIChat {
 
             // Combine original (higher priority) + expanded results
             filtered = [...filtered, ...scoredExpandedResults];
+        }
+
+        // TIER 3: Keyword-Relaxed Search (if still < 3 results)
+        if (filtered.length < 3 && filters.ageRange) {
+            Logger.info('🔍 Tier 3: Keyword-relaxed search', {
+                currentCount: filtered.length,
+                keepingAgeStrict: true,
+                removingKeywordRequirement: true
+            });
+
+            const existingIds = new Set(filtered.map(p => p.id));
+
+            const tier3Results = this.products.filter(product => {
+                if (existingIds.has(product.id)) return false;
+                if (!product.availableForSale) return false;
+                if (filters.maxPrice && product.price && parseFloat(product.price) > filters.maxPrice) return false;
+
+                // Keep age STRICT
+                if (product.ageRange) {
+                    const [minAge, maxAge] = product.ageRange;
+                    const ageMatches = minAge <= filters.ageRange[1] && maxAge >= filters.ageRange[0];
+                    if (!ageMatches) return false;
+                } else {
+                    return false;
+                }
+
+                // Accept any content type or general theme match
+                return true;
+            });
+
+            tier3Results.forEach(p => p.tierUsed = 3);
+            const scoredTier3 = this.scoreAndSortProducts(tier3Results, { ...filters, keywords: [] });
+
+            Logger.success('✨ Tier 3 completed', {
+                tier3Count: scoredTier3.length,
+                totalCount: filtered.length + scoredTier3.length
+            });
+
+            filtered = [...filtered, ...scoredTier3];
+        }
+
+        // TIER 4: Age-Flexible Search (if still < 3 results)
+        if (filtered.length < 3 && filters.ageRange) {
+            Logger.info('🔍 Tier 4: Age-flexible search', {
+                currentCount: filtered.length,
+                originalAgeRange: `[${filters.ageRange[0]}, ${filters.ageRange[1]}]`,
+                expandedAgeRange: `[${filters.ageRange[0] - 2}, ${filters.ageRange[1] + 2}]`
+            });
+
+            const existingIds = new Set(filtered.map(p => p.id));
+            const flexibleAgeRange = [
+                Math.max(0, filters.ageRange[0] - 2),
+                filters.ageRange[1] + 2
+            ];
+
+            const tier4Results = this.products.filter(product => {
+                if (existingIds.has(product.id)) return false;
+                if (!product.availableForSale) return false;
+                if (filters.maxPrice && product.price && parseFloat(product.price) > filters.maxPrice) return false;
+
+                // Expanded age range (±2 years)
+                if (product.ageRange) {
+                    const [minAge, maxAge] = product.ageRange;
+                    const ageMatches = minAge <= flexibleAgeRange[1] && maxAge >= flexibleAgeRange[0];
+                    if (!ageMatches) return false;
+                } else {
+                    return false;
+                }
+
+                return true;
+            });
+
+            tier4Results.forEach(p => p.tierUsed = 4);
+            const scoredTier4 = this.scoreAndSortProducts(tier4Results, filters);
+
+            Logger.success('✨ Tier 4 completed', {
+                tier4Count: scoredTier4.length,
+                totalCount: filtered.length + scoredTier4.length
+            });
+
+            filtered = [...filtered, ...scoredTier4];
+        }
+
+        // TIER 5: Popular Recommendations (if still < 3 results - ALWAYS returns results)
+        if (filtered.length < 3) {
+            Logger.info('🔍 Tier 5: Popular recommendations (last resort)', {
+                currentCount: filtered.length,
+                willReturn: 'popular products'
+            });
+
+            const existingIds = new Set(filtered.map(p => p.id));
+
+            // Get all available products not already included
+            let tier5Results = this.products.filter(product => {
+                if (existingIds.has(product.id)) return false;
+                if (!product.availableForSale) return false;
+                if (filters.maxPrice && product.price && parseFloat(product.price) > filters.maxPrice) return false;
+
+                // If age was specified, try to stay within ±3 years as a soft preference
+                if (filters.ageRange && product.ageRange) {
+                    const [minAge, maxAge] = product.ageRange;
+                    const flexibleRange = [
+                        Math.max(0, filters.ageRange[0] - 3),
+                        filters.ageRange[1] + 3
+                    ];
+                    const ageMatches = minAge <= flexibleRange[1] && maxAge >= flexibleRange[0];
+                    return ageMatches;
+                }
+
+                return true;
+            });
+
+            // Sort by a combination of factors (price, newer products, variety)
+            tier5Results.sort((a, b) => {
+                // Prefer products with more metadata (likely curated/popular)
+                const aMetaScore = (a.author ? 1 : 0) + (a.blurb ? 1 : 0) + (a.ageRange ? 1 : 0);
+                const bMetaScore = (b.author ? 1 : 0) + (b.blurb ? 1 : 0) + (b.ageRange ? 1 : 0);
+                return bMetaScore - aMetaScore;
+            });
+
+            tier5Results.forEach(p => p.tierUsed = 5);
+
+            // Take top 10 to ensure we have results
+            tier5Results = tier5Results.slice(0, 10);
+
+            Logger.success('✨ Tier 5 completed', {
+                tier5Count: tier5Results.length,
+                totalCount: filtered.length + tier5Results.length,
+                message: 'Ensuring non-zero results'
+            });
+
+            filtered = [...filtered, ...tier5Results];
         }
 
         // Limit to top 100 to reduce token usage
