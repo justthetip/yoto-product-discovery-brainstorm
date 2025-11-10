@@ -34,6 +34,20 @@ When helping users:
 - Combine ALL user preferences from the entire conversation when ranking products
 - Never drop previous requirements when new ones are added
 
+**Understanding Pre-Filtered Results**
+The products you receive have ALREADY been filtered to match the user's criteria:
+- Keywords were matched against title, author, blurb (description), AND content types
+- Age ranges were checked for overlap with user's requested age
+- Content types were matched to the query
+
+CRITICAL INSTRUCTIONS:
+1. CHECK THE BLURB FIELD - Keywords often appear in descriptions, not titles
+2. PRESENT relevant products immediately - don't say "I don't see" without checking blurbs first
+3. DO NOT ask for refinement if you have 3+ good matches - just present them!
+4. Example: "Tales of Tricks and Treats" contains "witches" in the blurb, so it IS a witch story
+
+If you say "I don't see X products" but they exist in the pre-filtered list, you failed to check the blurbs.
+
 **Handling Expanded Results**
 Some products may have an 'isExpanded' flag set to true. These are semantically related suggestions that were added when few exact matches were found:
 - Expanded results use related keywords (e.g., "prehistoric" for "dinosaur", "galaxy" for "space")
@@ -44,10 +58,13 @@ Some products may have an 'isExpanded' flag set to true. These are semantically 
 - Example: "I found 2 dinosaur stories, and also 3 related prehistoric-themed adventures you might enjoy"
 
 You will receive a pre-filtered set of products that match basic criteria. Your job is to:
-- Semantically understand what the user REALLY wants across the ENTIRE conversation
-- Rank products by relevance to ALL stated requirements
-- Explain matches in parent-friendly language
-- Suggest refinements or alternatives
+1. FIRST: Review ALL products carefully - check titles AND blurbs for keywords
+2. PRESENT matches immediately if you have 3+ relevant products
+3. Rank products by relevance to ALL conversation requirements
+4. Explain matches in parent-friendly language (mention when keyword is in description)
+5. ONLY ask for refinement if fewer than 3 good matches exist
+
+Remember: Pre-filtering already did the hard work. Your job is to recognize, rank, and present the matches.
 
 CRITICAL: You MUST respond with valid, properly formatted JSON only. No markdown, no extra text.
 
@@ -70,6 +87,18 @@ If you need clarification, return:
   "needsMoreInfo": true
 }
 
+**Example Response Patterns:**
+
+✅ GOOD - Products exist and are presented immediately:
+"I found 3 great witch stories for your 6-year-old!
+- 'Tales of Tricks and Treats' by Enid Blyton features wizards and witches in 30 short stories (Ages 5-9)
+- 'Stories of Magic and Mischief' has witches and pixies in magical adventures (Ages 5-9)
+..."
+
+❌ BAD - Products exist but you're asking for refinement:
+"I don't see specific witch-focused story cards. Could you tell me more about what you're looking for?"
+↑ This means you didn't check the blurb field! The products ARE there.
+
 JSON formatting rules:
 - Use double quotes for ALL string keys and values
 - No trailing commas
@@ -84,7 +113,7 @@ async function callClaudeAPI(messages, products, apiKey) {
       .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
       .replace(/"/g, "'") // Replace double quotes with single quotes
       .replace(/\\/g, '') // Remove backslashes
-      .substring(0, 200);
+      .substring(0, 300);  // Increased to ensure keywords aren't cut off
   };
 
   const productContext = products.slice(0, 50).map(p => ({
@@ -101,6 +130,11 @@ async function callClaudeAPI(messages, products, apiKey) {
     isExpanded: p.isExpanded || false
   }));
 
+  // Get the latest user message for context
+  const latestUserMessage = messages.length > 0 && messages[messages.length - 1].role === 'user'
+    ? messages[messages.length - 1].content
+    : 'user query';
+
   const requestPayload = {
     model: 'claude-sonnet-4-5-20250929',
     max_tokens: 2048,
@@ -109,7 +143,7 @@ async function callClaudeAPI(messages, products, apiKey) {
       ...messages,
       {
         role: 'user',
-        content: `Available products to search:\n${JSON.stringify(productContext, null, 2)}\n\nRespond with JSON only.`
+        content: `Available products to search:\n${JSON.stringify(productContext, null, 2)}\n\nIMPORTANT: ${productContext.length} products were pre-filtered to match "${latestUserMessage}". Review ALL of them carefully, especially the 'blurb' field which often contains relevant keywords not in the title.\n\nRespond with JSON only.`
       }
     ]
   };

@@ -325,6 +325,14 @@ class YotoAIChat {
             keywords: this.extractKeywords(queryLower)
         };
 
+        Logger.info('🔍 Filter extraction', {
+            keywords: filters.keywords,
+            contentTypes: filters.contentTypes,
+            ageRange: filters.ageRange ? `[${filters.ageRange[0]}, ${filters.ageRange[1]}]` : null,
+            maxPrice: filters.maxPrice ? `£${filters.maxPrice}` : null,
+            maxRuntime: filters.maxRuntime ? `${Math.floor(filters.maxRuntime / 60)}min` : null
+        });
+
         // Check if we have ANY filters - if not, return all available products
         const hasFilters = filters.maxPrice || filters.ageRange || filters.maxRuntime ||
                           filters.contentTypes.length > 0 || filters.keywords.length > 0;
@@ -415,6 +423,27 @@ class YotoAIChat {
 
         // Sort by relevance (basic scoring)
         filtered = this.scoreAndSortProducts(filtered, filters);
+
+        Logger.info('📊 Initial filter results', {
+            totalProducts: this.products.length,
+            availableProducts: this.products.filter(p => p.availableForSale !== false).length,
+            afterFiltering: filtered.length,
+            expansionWillTrigger: filtered.length < 3 && (filters.keywords.length > 0 || filters.contentTypes.length > 0)
+        });
+
+        // Log example matched products for debugging
+        if (filtered.length > 0) {
+            Logger.debug('Example matches (first 3)', {
+                products: filtered.slice(0, 3).map(p => ({
+                    title: p.title,
+                    age: p.ageRange ? `[${p.ageRange[0]}, ${p.ageRange[1]}]` : 'N/A',
+                    contentType: p.contentType,
+                    hasKeywordInTitle: filters.keywords.some(k => p.title?.toLowerCase().includes(k)),
+                    hasKeywordInBlurb: filters.keywords.some(k => p.blurb?.toLowerCase().includes(k)),
+                    price: `£${p.price}`
+                }))
+            });
+        }
 
         // Check if we need to expand the search semantically
         if (filtered.length < 3 && (filters.keywords.length > 0 || filters.contentTypes.length > 0)) {
@@ -564,15 +593,46 @@ class YotoAIChat {
             const match = query.match(pattern);
             if (match) {
                 const age = parseInt(match[1]);
+                const range = [Math.max(0, age - 1), age + 1];
+
+                Logger.info('🎯 Age extraction', {
+                    query: query.substring(0, 100),
+                    pattern: pattern.source,
+                    extractedAge: age,
+                    filterRange: range,
+                    logic: 'age ± 1 for flexibility'
+                });
+
                 // Return a range around the mentioned age
-                return [Math.max(0, age - 1), age + 1];
+                return range;
             }
         }
 
         // Look for age group keywords
-        if (query.includes('toddler')) return [2, 4];
-        if (query.includes('preschool')) return [3, 5];
-        if (query.includes('baby') || query.includes('babies')) return [0, 2];
+        if (query.includes('toddler')) {
+            Logger.info('🎯 Age extraction', {
+                query: query.substring(0, 100),
+                keyword: 'toddler',
+                filterRange: [2, 4]
+            });
+            return [2, 4];
+        }
+        if (query.includes('preschool')) {
+            Logger.info('🎯 Age extraction', {
+                query: query.substring(0, 100),
+                keyword: 'preschool',
+                filterRange: [3, 5]
+            });
+            return [3, 5];
+        }
+        if (query.includes('baby') || query.includes('babies')) {
+            Logger.info('🎯 Age extraction', {
+                query: query.substring(0, 100),
+                keyword: 'baby/babies',
+                filterRange: [0, 2]
+            });
+            return [0, 2];
+        }
 
         return null;
     }
