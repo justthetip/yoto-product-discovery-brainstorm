@@ -395,6 +395,142 @@
             background: #FF5525;
             transform: scale(1.05);
         }
+
+        /* Debug Panel Styles */
+        .debug-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 400px;
+            max-height: 500px;
+            background: white;
+            border: 2px solid #dee2e6;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            z-index: 1000;
+        }
+
+        .debug-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 16px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+
+        .debug-header:hover {
+            background: linear-gradient(135deg, #5568d3 0%, #653a8b 100%);
+        }
+
+        .debug-header h4 {
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .debug-toggle {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .debug-content {
+            padding: 16px;
+            font-size: 12px;
+            line-height: 1.6;
+            display: none;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .debug-content.open {
+            display: block;
+        }
+
+        .debug-section {
+            margin-bottom: 16px;
+        }
+
+        .debug-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .debug-section h5 {
+            font-size: 12px;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .debug-info {
+            background: #f8f9fa;
+            padding: 10px 12px;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+        }
+
+        .debug-info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid #f1f3f5;
+        }
+
+        .debug-info-row:last-child {
+            border-bottom: none;
+        }
+
+        .debug-label {
+            font-weight: 600;
+            color: #6c757d;
+        }
+
+        .debug-value {
+            color: #212529;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+        }
+
+        .debug-badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-right: 6px;
+            margin-bottom: 4px;
+        }
+
+        .debug-example {
+            background: white;
+            padding: 8px 10px;
+            border-radius: 4px;
+            border-left: 3px solid #667eea;
+            margin-bottom: 8px;
+            font-size: 11px;
+        }
+
+        .debug-example:last-child {
+            margin-bottom: 0;
+        }
+
+        .debug-example-title {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 4px;
+        }
+
+        .debug-example-meta {
+            color: #6c757d;
+            font-size: 10px;
+        }
     </style>
 </head>
 <body>
@@ -435,6 +571,40 @@
         <div class="chat-input-mini">
             <input type="text" id="chatInput" placeholder="What are you looking for?" autocomplete="off">
             <button id="sendButton">Send</button>
+        </div>
+    </div>
+
+    <!-- Debug Panel -->
+    <div class="debug-panel" id="debugPanel" style="display: none;">
+        <div class="debug-header" id="debugHeader">
+            <h4>🔍 Search Debug Info</h4>
+            <span class="debug-toggle">▼ Click to expand</span>
+        </div>
+        <div class="debug-content" id="debugContent">
+            <div class="debug-section">
+                <h5>🎯 Extracted Filters</h5>
+                <div class="debug-info" id="debugFilters">
+                    <div class="debug-info-row">
+                        <span class="debug-label">No search yet</span>
+                    </div>
+                </div>
+            </div>
+            <div class="debug-section">
+                <h5>📊 Filter Results</h5>
+                <div class="debug-info" id="debugResults">
+                    <div class="debug-info-row">
+                        <span class="debug-label">No results yet</span>
+                    </div>
+                </div>
+            </div>
+            <div class="debug-section">
+                <h5>📝 Example Matches</h5>
+                <div id="debugExamples">
+                    <div class="debug-info-row">
+                        <span class="debug-label">No examples yet</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
