@@ -130,6 +130,21 @@ class YotoAIChat {
             });
         });
         Logger.success(`${quickPrompts.length} quick prompt listeners attached`);
+
+        // Debug panel toggle
+        const debugHeader = document.getElementById('debugHeader');
+        const debugContent = document.getElementById('debugContent');
+        const debugToggle = debugHeader?.querySelector('.debug-toggle');
+
+        if (debugHeader && debugContent) {
+            debugHeader.addEventListener('click', () => {
+                const isOpen = debugContent.classList.toggle('open');
+                if (debugToggle) {
+                    debugToggle.textContent = isOpen ? '▲ Click to collapse' : '▼ Click to expand';
+                }
+            });
+            Logger.success('Debug panel toggle listener attached');
+        }
     }
 
     async sendMessage() {
@@ -432,18 +447,32 @@ class YotoAIChat {
         });
 
         // Log example matched products for debugging
+        const exampleMatches = filtered.length > 0 ? filtered.slice(0, 3).map(p => ({
+            title: p.title,
+            age: p.ageRange ? `[${p.ageRange[0]}, ${p.ageRange[1]}]` : 'N/A',
+            contentType: p.contentType,
+            hasKeywordInTitle: filters.keywords.some(k => p.title?.toLowerCase().includes(k)),
+            hasKeywordInBlurb: filters.keywords.some(k => p.blurb?.toLowerCase().includes(k)),
+            price: `£${p.price}`
+        })) : [];
+
         if (filtered.length > 0) {
             Logger.debug('Example matches (first 3)', {
-                products: filtered.slice(0, 3).map(p => ({
-                    title: p.title,
-                    age: p.ageRange ? `[${p.ageRange[0]}, ${p.ageRange[1]}]` : 'N/A',
-                    contentType: p.contentType,
-                    hasKeywordInTitle: filters.keywords.some(k => p.title?.toLowerCase().includes(k)),
-                    hasKeywordInBlurb: filters.keywords.some(k => p.blurb?.toLowerCase().includes(k)),
-                    price: `£${p.price}`
-                }))
+                products: exampleMatches
             });
         }
+
+        // Update UI debug panel
+        this.updateDebugPanel(
+            filters,
+            {
+                totalProducts: this.products.length,
+                availableProducts: this.products.filter(p => p.availableForSale !== false).length,
+                afterFiltering: filtered.length,
+                expansionWillTrigger: filtered.length < 3 && (filters.keywords.length > 0 || filters.contentTypes.length > 0)
+            },
+            exampleMatches
+        );
 
         // Check if we need to expand the search semantically
         if (filtered.length < 3 && (filters.keywords.length > 0 || filters.contentTypes.length > 0)) {
@@ -974,6 +1003,84 @@ class YotoAIChat {
 
         this.currentResults = productsWithDetails;
         Logger.success('displayProducts() complete', { currentResultsCount: this.currentResults.length });
+    }
+
+    updateDebugPanel(filters, filterResults, exampleMatches) {
+        const debugPanel = document.getElementById('debugPanel');
+        const debugFilters = document.getElementById('debugFilters');
+        const debugResults = document.getElementById('debugResults');
+        const debugExamples = document.getElementById('debugExamples');
+
+        if (!debugPanel || !debugFilters || !debugResults || !debugExamples) {
+            return;
+        }
+
+        // Show the debug panel
+        debugPanel.style.display = 'block';
+
+        // Update filters section
+        debugFilters.innerHTML = `
+            <div class="debug-info-row">
+                <span class="debug-label">Keywords:</span>
+                <span class="debug-value">${filters.keywords.length > 0 ? filters.keywords.map(k => `<span class="debug-badge">${k}</span>`).join('') : 'None'}</span>
+            </div>
+            <div class="debug-info-row">
+                <span class="debug-label">Content Types:</span>
+                <span class="debug-value">${filters.contentTypes.length > 0 ? filters.contentTypes.map(t => `<span class="debug-badge">${t}</span>`).join('') : 'None'}</span>
+            </div>
+            <div class="debug-info-row">
+                <span class="debug-label">Age Range:</span>
+                <span class="debug-value">${filters.ageRange ? `[${filters.ageRange[0]}, ${filters.ageRange[1]}]` : 'Not specified'}</span>
+            </div>
+            <div class="debug-info-row">
+                <span class="debug-label">Max Price:</span>
+                <span class="debug-value">${filters.maxPrice ? `£${filters.maxPrice}` : 'Not specified'}</span>
+            </div>
+            <div class="debug-info-row">
+                <span class="debug-label">Max Runtime:</span>
+                <span class="debug-value">${filters.maxRuntime ? `${Math.floor(filters.maxRuntime / 60)}min` : 'Not specified'}</span>
+            </div>
+        `;
+
+        // Update results section
+        debugResults.innerHTML = `
+            <div class="debug-info-row">
+                <span class="debug-label">Total Products:</span>
+                <span class="debug-value">${filterResults.totalProducts}</span>
+            </div>
+            <div class="debug-info-row">
+                <span class="debug-label">Available Products:</span>
+                <span class="debug-value">${filterResults.availableProducts}</span>
+            </div>
+            <div class="debug-info-row">
+                <span class="debug-label">After Filtering:</span>
+                <span class="debug-value">${filterResults.afterFiltering}</span>
+            </div>
+            <div class="debug-info-row">
+                <span class="debug-label">Expansion Triggered:</span>
+                <span class="debug-value">${filterResults.expansionWillTrigger ? 'Yes' : 'No'}</span>
+            </div>
+        `;
+
+        // Update examples section
+        if (exampleMatches && exampleMatches.length > 0) {
+            debugExamples.innerHTML = exampleMatches.map(p => `
+                <div class="debug-example">
+                    <div class="debug-example-title">${p.title}</div>
+                    <div class="debug-example-meta">
+                        Age: ${p.age} |
+                        Price: ${p.price} |
+                        Types: ${Array.isArray(p.contentType) ? p.contentType.join(', ') : p.contentType}
+                    </div>
+                    <div class="debug-example-meta">
+                        Keyword in title: ${p.hasKeywordInTitle ? '✅' : '❌'} |
+                        Keyword in blurb: ${p.hasKeywordInBlurb ? '✅' : '❌'}
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            debugExamples.innerHTML = '<div class="debug-info-row"><span class="debug-label">No matches to display</span></div>';
+        }
     }
 
     createProductCard(product) {

@@ -48,6 +48,30 @@ CRITICAL INSTRUCTIONS:
 
 If you say "I don't see X products" but they exist in the pre-filtered list, you failed to check the blurbs.
 
+**Age-Based Ranking Rules**
+When users specify an age (e.g., "for 6 year olds"), prioritize products where the requested age falls INSIDE the product's age range:
+
+1. **HIGHEST PRIORITY** - Requested age is INSIDE the product's age range:
+   - User asks for "6 year olds" → Product is [5-9] → Age 6 is INSIDE → Rank HIGHEST
+   - User asks for "6 year olds" → Product is [4-7] → Age 6 is INSIDE → Rank HIGHEST
+
+2. **LOWER PRIORITY** - Requested age is OUTSIDE but ranges overlap:
+   - User asks for "6 year olds" → Product is [7-10] → Age 6 is OUTSIDE (boundary overlap only) → Rank LOWER
+   - Even if the title keyword matches perfectly, age appropriateness is critical for children's content
+
+3. **Scoring Guidelines**:
+   - Age INSIDE + strong keyword match = 90-100% relevance
+   - Age INSIDE + weak keyword match = 75-89% relevance
+   - Age OUTSIDE + strong keyword match = 60-74% relevance (penalized for age)
+   - Age OUTSIDE + weak keyword match = Below 60% relevance
+
+4. **Example**:
+   User: "witch stories for 6 year olds"
+   - "Tales of Tricks and Treats" [Ages 5-9] with "witches" in blurb → 90%+ (age 6 is INSIDE)
+   - "The Worst Witch" [Ages 7-10] with "witch" in title → 70% max (age 6 is OUTSIDE)
+
+Remember: Age appropriateness is paramount for children's content. A perfect keyword match should not override age suitability.
+
 **Handling Expanded Results**
 Some products may have an 'isExpanded' flag set to true. These are semantically related suggestions that were added when few exact matches were found:
 - Expanded results use related keywords (e.g., "prehistoric" for "dinosaur", "galaxy" for "space")
