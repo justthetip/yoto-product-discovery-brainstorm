@@ -728,7 +728,8 @@ class YotoAIChat {
             .split(/\s+/)
             .filter(word => word.length > 2 && !stopWords.includes(word));
 
-        return words;
+        // Remove duplicates - important when combining multiple conversation messages
+        return [...new Set(words)];
     }
 
     scoreAndSortProducts(products, filters) {
