@@ -272,12 +272,23 @@ class YotoAIChat {
                 const hasKeyword = filters.keywords.some(keyword => {
                     // Try exact match first
                     if (searchText.includes(keyword)) return true;
-                    // Try singular/plural variations
-                    if (keyword.endsWith('s') && searchText.includes(keyword.slice(0, -1))) return true;
+
+                    // Handle plurals ending in 's'
+                    if (keyword.endsWith('s')) {
+                        // Try removing just 's' (princesses -> princesse)
+                        if (searchText.includes(keyword.slice(0, -1))) return true;
+                        // Try removing 'es' (princesses -> princess, boxes -> box)
+                        if (keyword.endsWith('es') && searchText.includes(keyword.slice(0, -2))) return true;
+                    }
+
+                    // Try adding 's' or 'es'
                     if (searchText.includes(keyword + 's')) return true;
-                    // Try with "es" ending (stories/story, etc)
+                    if (searchText.includes(keyword + 'es')) return true;
+
+                    // Handle ies/y transformations (stories/story)
                     if (keyword.endsWith('ies') && searchText.includes(keyword.slice(0, -3) + 'y')) return true;
                     if (searchText.includes(keyword.replace(/y$/, 'ies'))) return true;
+
                     return false;
                 });
                 if (hasKeyword) {
@@ -409,13 +420,25 @@ class YotoAIChat {
     scoreAndSortProducts(products, filters) {
         // Helper function for fuzzy keyword matching
         const matchesKeyword = (text, keyword) => {
+            // Try exact match first
             if (text.includes(keyword)) return true;
-            // Try singular/plural variations
-            if (keyword.endsWith('s') && text.includes(keyword.slice(0, -1))) return true;
+
+            // Handle plurals ending in 's'
+            if (keyword.endsWith('s')) {
+                // Try removing just 's' (princesses -> princesse)
+                if (text.includes(keyword.slice(0, -1))) return true;
+                // Try removing 'es' (princesses -> princess, boxes -> box)
+                if (keyword.endsWith('es') && text.includes(keyword.slice(0, -2))) return true;
+            }
+
+            // Try adding 's' or 'es'
             if (text.includes(keyword + 's')) return true;
-            // Try with "es" ending (stories/story, etc)
+            if (text.includes(keyword + 'es')) return true;
+
+            // Handle ies/y transformations (stories/story)
             if (keyword.endsWith('ies') && text.includes(keyword.slice(0, -3) + 'y')) return true;
             if (text.includes(keyword.replace(/y$/, 'ies'))) return true;
+
             return false;
         };
 
