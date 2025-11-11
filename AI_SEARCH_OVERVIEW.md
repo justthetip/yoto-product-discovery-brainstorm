@@ -2,7 +2,7 @@
 
 **What I Built:** Natural language search for 1,383 audio products that lets parents search with phrases like "bedtime stories for my 4-year-old" instead of exact product names.
 
-**Live Demo:** https://yoto-product-discovery-brainstorm.vercel.app
+**Live Demo:** https://yoto-product-discovery-brainstorm.vercel.app/web/ai-v5-layout-a.html
 
 ---
 
