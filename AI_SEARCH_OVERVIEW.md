@@ -75,22 +75,6 @@ Understands intent and ranks pre-filtered products by relevance
 **Cost Efficiency:**
 - 90% token reduction through smart pre-filtering
 - Response caching for repeated queries
-- Edge compute (sub-100ms cold starts)
-
-**UX Wins:**
-- Natural language works
-- Multi-turn conversation context
-- No frustrating dead ends
-
----
-
-## Built 5 UI Variants
-
-All deployed to production for A/B testing:
-- Layout A: Conversational inline (ChatGPT-style)
-- Layout B: Hero focus (swipeable cards)
-- Layout C: Power dashboard (grid/list views)
-- Layout D & E: Additional variants
 
 ---
 
