@@ -6,6 +6,8 @@ Exploring different UX approaches to content discovery and filtering, all using 
 
 **Search with natural language using Claude AI:**
 
+📖 **[Read the Technical Overview](./AI_SEARCH_OVERVIEW.md)** - Learn how the two-stage hybrid search system works
+
 ```bash
 # Deploy to Vercel (free tier)
 vercel
@@ -25,8 +27,6 @@ vercel dev
 - **Conversational refinement** - "Make them shorter", "Cheaper options"
 - **Smart recommendations** - AI explains why products match
 - **Cost optimized** - Client-side pre-filtering saves 90% on tokens
-
-👉 **[Deployment Guide](DEPLOYMENT.md)** | Estimated cost: $15-30/month for 50 queries/day
 
 ---
 

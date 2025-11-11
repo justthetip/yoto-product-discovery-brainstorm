@@ -287,7 +287,31 @@ class YotoAIChat {
             'monster': ['creature', 'scary', 'beast', 'halloween'],
             'superhero': ['hero', 'powers', 'cape', 'adventure', 'brave'],
             'fairy': ['fantasy', 'magical', 'wings', 'fairy tale'],
-            'bedtime': ['sleep', 'night', 'calm', 'lullaby', 'soothing']
+            'bedtime': ['sleep', 'night', 'calm', 'lullaby', 'soothing'],
+            // Reverse mappings for common related terms
+            'broom': ['witch', 'magic', 'halloween', 'spell'],
+            'broomstick': ['witch', 'magic', 'halloween', 'spell'],
+            'wand': ['magic', 'wizard', 'witch', 'spell', 'fantasy'],
+            'spell': ['magic', 'wizard', 'witch', 'fantasy'],
+            'potion': ['magic', 'wizard', 'witch', 'spell'],
+            'cauldron': ['witch', 'magic', 'potion', 'halloween'],
+            // Musical instruments → music
+            'trombone': ['music', 'instrument', 'brass', 'jazz', 'orchestra'],
+            'trumpet': ['music', 'instrument', 'brass', 'jazz', 'orchestra'],
+            'violin': ['music', 'instrument', 'strings', 'classical', 'orchestra'],
+            'piano': ['music', 'instrument', 'classical', 'keys'],
+            'guitar': ['music', 'instrument', 'strings', 'rock'],
+            'drum': ['music', 'instrument', 'percussion', 'rhythm'],
+            'flute': ['music', 'instrument', 'wind', 'classical'],
+            'saxophone': ['music', 'instrument', 'jazz', 'wind'],
+            'banjo': ['music', 'instrument', 'folk', 'strings'],
+            // Vehicles → transport, travel, and music (Wheels on the Bus)
+            'bus': ['vehicle', 'transport', 'travel', 'wheel', 'music', 'song'],
+            'busses': ['vehicle', 'transport', 'travel', 'wheel', 'music', 'song'],
+            'buses': ['vehicle', 'transport', 'travel', 'wheel', 'music', 'song'],
+            'car': ['vehicle', 'transport', 'travel', 'wheel'],
+            'train': ['vehicle', 'transport', 'travel', 'railway'],
+            'truck': ['vehicle', 'transport', 'travel', 'wheel']
         };
 
         // Level 2: Broader category expansions
@@ -521,7 +545,8 @@ class YotoAIChat {
                 afterFiltering: filtered.length,
                 expansionWillTrigger: filtered.length < 3 && (filters.keywords.length > 0 || filters.contentTypes.length > 0)
             },
-            exampleMatches
+            exampleMatches,
+            conversationHistory  // Pass full conversation history
         );
 
         // Check if we need to expand the search semantically
@@ -789,6 +814,7 @@ class YotoAIChat {
         }
 
         // TIER 5: Popular Recommendations (if still < 3 results - ALWAYS returns results)
+        // Updated: Now ignores ALL filters to guarantee results
         if (filtered.length < 3) {
             Logger.info('🔍 Tier 5: Popular recommendations (last resort)', {
                 currentCount: filtered.length,
@@ -798,26 +824,17 @@ class YotoAIChat {
             const existingIds = new Set(filtered.map(p => p.id));
 
             // Get all available products not already included
+            // At this stage, we ignore age and keyword filters to ENSURE we have results
             let tier5Results = this.products.filter(product => {
                 if (existingIds.has(product.id)) return false;
                 if (!product.availableForSale) return false;
+                // Still respect price filter if specified
                 if (filters.maxPrice && product.price && parseFloat(product.price) > filters.maxPrice) return false;
-
-                // If age was specified, try to stay within ±3 years as a soft preference
-                if (filters.ageRange && product.ageRange) {
-                    const [minAge, maxAge] = product.ageRange;
-                    const flexibleRange = [
-                        Math.max(0, filters.ageRange[0] - 3),
-                        filters.ageRange[1] + 3
-                    ];
-                    const ageMatches = minAge <= flexibleRange[1] && maxAge >= flexibleRange[0];
-                    return ageMatches;
-                }
-
                 return true;
             });
 
-            // Sort by a combination of factors (price, newer products, variety)
+            // Sort by metadata quality (proxy for popularity/curation)
+            // Products with more complete metadata are likely best sellers
             tier5Results.sort((a, b) => {
                 // Prefer products with more metadata (likely curated/popular)
                 const aMetaScore = (a.author ? 1 : 0) + (a.blurb ? 1 : 0) + (a.ageRange ? 1 : 0);
@@ -833,7 +850,7 @@ class YotoAIChat {
             Logger.success('✨ Tier 5 completed', {
                 tier5Count: tier5Results.length,
                 totalCount: filtered.length + tier5Results.length,
-                message: 'Ensuring non-zero results'
+                message: 'Fallback to best-selling content (ignoring age/keyword filters)'
             });
 
             filtered = [...filtered, ...tier5Results];
@@ -844,14 +861,16 @@ class YotoAIChat {
     }
 
     extractMaxPrice(query) {
-        // Look for price mentions like "under £10", "less than 15", etc.
+        // Look for price mentions like "under £10", "less than £15", etc.
+        // IMPORTANT: Must require currency symbol or word to avoid matching ages
         const patterns = [
-            /under\s*£?(\d+)/i,
-            /less\s*than\s*£?(\d+)/i,
-            /cheaper\s*than\s*£?(\d+)/i,
-            /below\s*£?(\d+)/i,
-            /max\s*£?(\d+)/i,
-            /maximum\s*£?(\d+)/i,
+            /under\s*£(\d+)/i,           // "under £10" (requires £)
+            /less\s*than\s*£(\d+)/i,     // "less than £15" (requires £)
+            /cheaper\s*than\s*£(\d+)/i,  // "cheaper than £20" (requires £)
+            /below\s*£(\d+)/i,           // "below £10" (requires £)
+            /max\s*£(\d+)/i,             // "max £10" (requires £)
+            /maximum\s*£(\d+)/i,         // "maximum £15" (requires £)
+            /(\d+)\s*pounds?\b/i,        // "10 pounds" or "15 pound"
         ];
 
         for (const pattern of patterns) {
@@ -1164,7 +1183,7 @@ class YotoAIChat {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${role}`;
 
-        const avatar = role === 'user' ? '👤' : '🤖';
+        const avatar = role === 'user' ? '👤' : '<img src="/public/yoto-face-3x.png" alt="Yoto">';
 
         messageDiv.innerHTML = `
             <div class="message-avatar">${avatar}</div>
@@ -1189,7 +1208,7 @@ class YotoAIChat {
         loadingDiv.id = 'loadingMessage';
 
         loadingDiv.innerHTML = `
-            <div class="message-avatar">🤖</div>
+            <div class="message-avatar"><img src="/public/yoto-face-3x.png" alt="Yoto"></div>
             <div class="loading">
                 <span>Thinking</span>
                 <div class="loading-dots">
@@ -1258,7 +1277,7 @@ class YotoAIChat {
         Logger.success('displayProducts() complete', { currentResultsCount: this.currentResults.length });
     }
 
-    updateDebugPanel(filters, filterResults, exampleMatches) {
+    updateDebugPanel(filters, filterResults, exampleMatches, conversationHistory = []) {
         const debugPanel = document.getElementById('debugPanel');
         const debugFilters = document.getElementById('debugFilters');
         const debugResults = document.getElementById('debugResults');
@@ -1271,12 +1290,32 @@ class YotoAIChat {
         // Show the debug panel
         debugPanel.style.display = 'block';
 
-        // Update filters section
+        // Extract full conversation context for AI
+        const fullConversationText = conversationHistory
+            .filter(msg => msg.role === 'user')
+            .map(msg => msg.content)
+            .join(' ');
+
+        const fullContextKeywords = this.extractKeywords(fullConversationText.toLowerCase());
+        const fullContextContentTypes = this.extractContentTypes(fullConversationText.toLowerCase());
+        const fullContextAgeRange = this.extractAgeRange(fullConversationText.toLowerCase());
+
+        // Update filters section - now showing BOTH latest message AND full context
         debugFilters.innerHTML = `
+            <div style="background: #fff3cd; padding: 8px; border-radius: 4px; margin-bottom: 12px; font-size: 11px; border-left: 3px solid #ffc107;">
+                <strong>ℹ️ Latest Message Filters:</strong> Used for client-side pre-filtering<br>
+                <strong>💬 Full Context:</strong> What the AI sees from entire conversation
+            </div>
             <div class="debug-info-row">
-                <span class="debug-label">Keywords:</span>
+                <span class="debug-label">Latest Keywords:</span>
                 <span class="debug-value">${filters.keywords.length > 0 ? filters.keywords.map(k => `<span class="debug-badge">${k}</span>`).join('') : 'None'}</span>
             </div>
+            ${fullContextKeywords.length > filters.keywords.length ? `
+            <div class="debug-info-row">
+                <span class="debug-label">Full Context Keywords:</span>
+                <span class="debug-value">${fullContextKeywords.map(k => `<span class="debug-badge" style="background: #4CAF50;">${k}</span>`).join('')}</span>
+            </div>
+            ` : ''}
             <div class="debug-info-row">
                 <span class="debug-label">Content Types:</span>
                 <span class="debug-value">${filters.contentTypes.length > 0 ? filters.contentTypes.map(t => `<span class="debug-badge">${t}</span>`).join('') : 'None'}</span>
@@ -1392,23 +1431,15 @@ class YotoAIChat {
     }
 
     saveConversationHistory() {
-        try {
-            localStorage.setItem('yoto_conversation', JSON.stringify(this.conversationHistory));
-        } catch (error) {
-            console.error('Error saving conversation history:', error);
-        }
+        // Disabled for demo - conversation resets on page reload
+        // This prevents confusion from previous searches appearing in debug panel
+        return;
     }
 
     loadConversationHistory() {
-        try {
-            const saved = localStorage.getItem('yoto_conversation');
-            if (saved) {
-                this.conversationHistory = JSON.parse(saved);
-                // Optionally reload messages to UI
-            }
-        } catch (error) {
-            console.error('Error loading conversation history:', error);
-        }
+        // Disabled for demo - each page load starts fresh
+        // This prevents confusion from previous searches appearing in debug panel
+        return;
     }
 }
 

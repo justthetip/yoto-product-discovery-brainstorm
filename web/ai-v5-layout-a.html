@@ -106,6 +106,15 @@
             flex-shrink: 0;
         }
 
+        .message-avatar img {
+            width: 24px;
+            height: 24px;
+        }
+
+        .message.assistant .message-avatar {
+            background: #f45436;
+        }
+
         .message.user .message-avatar {
             background: #f45436;
         }
@@ -508,16 +517,16 @@
 
     <div class="chat-container">
         <div class="chat-header">
-            <h1>🤖 AI Shopping Assistant</h1>
-            <p>Products appear naturally in our conversation</p>
+            <h1>Audio Discovery Guide</h1>
+            <p>Let's find the perfect audio content together</p>
         </div>
 
         <div class="messages-area" id="chatMessages">
             <div class="message assistant">
-                <div class="message-avatar">🤖</div>
+                <div class="message-avatar"><img src="/public/yoto-face-3x.png" alt="Yoto"></div>
                 <div class="message-content-wrapper">
                     <div class="message-content">
-                        Hi! I'm your Yoto shopping assistant. I'll help you find the perfect audio content for children. Just tell me what you're looking for, and I'll show you recommendations right here in our chat!
+                        Hi! I'm here to help you discover amazing audio content that puts your child in control of their listening journey. Tell me what they're curious about, and I'll find the perfect stories, songs, and learning adventures!
                         <br><br>
                         Try asking me something like:
                         <br>
@@ -673,7 +682,7 @@
 
                 const avatar = document.createElement('div');
                 avatar.className = 'message-avatar';
-                avatar.textContent = '🤖';
+                avatar.innerHTML = '<img src="/public/yoto-face-3x.png" alt="Yoto">';
 
                 const contentWrapper = document.createElement('div');
                 contentWrapper.className = 'message-content-wrapper';
